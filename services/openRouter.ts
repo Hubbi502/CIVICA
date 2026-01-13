@@ -2,10 +2,8 @@ import { Personas } from '@/constants/personas';
 import { AIClassification, ChatMessage, PersonaType, PostType, QuickAction, SeverityLevel } from '@/types';
 import { OpenRouter } from '@openrouter/sdk';
 
-const OPENROUTER_API_KEY = "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";
-
 const openrouter = new OpenRouter({
-    apiKey: OPENROUTER_API_KEY,
+    apiKey: process.env.EXPO_PUBLIC_OPENROUTER_API_KEY,
 });
 
 const MODEL = 'xiaomi/mimo-v2-flash:free';

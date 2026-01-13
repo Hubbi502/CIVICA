@@ -8,13 +8,13 @@ import { getStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCD0ctDQMrcfldYX4IjwyGsmoz7s_we_dM",
-    authDomain: "civica-4c460.firebaseapp.com",
-    projectId: "civica-4c460",
-    storageBucket: "civica-4c460.firebasestorage.app",
-    messagingSenderId: "409117416271",
-    appId: "1:409117416271:web:21a946a79f70794aa5833a",
-    measurementId: "G-R76VM6HXYB"
+    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
