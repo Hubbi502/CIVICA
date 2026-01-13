@@ -1,7 +1,3 @@
-/**
- * CIVICA AI Chatbot Assistant Screen
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { generateQuickActions, getChatResponse, getTimeOfDay } from '@/services/openRouter';
@@ -70,7 +66,6 @@ export default function ChatbotScreen() {
         setIsLoading(true);
 
         try {
-            // Call OpenRouter AI for real response
             const response = await getChatResponse(
                 [...messages, userMessage],
                 {
@@ -166,7 +161,6 @@ export default function ChatbotScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-            {/* Header */}
             <View style={[styles.header, { borderBottomColor: colors.border }]}>
                 <View style={[styles.headerIcon, { backgroundColor: Brand.primary }]}>
                     <Sparkles size={24} color="#FFFFFF" />
@@ -206,7 +200,6 @@ export default function ChatbotScreen() {
                     onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
                 />
 
-                {/* Input */}
                 <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
                     <TextInput
                         style={[styles.input, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}

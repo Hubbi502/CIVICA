@@ -1,8 +1,3 @@
-/**
- * CIVICA Profile Screen
- * User profile with stats, badges, and gamification
- */
-
 import { Brand, Colors, FontSize, FontWeight, LevelColors, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/stores/authStore';
@@ -32,7 +27,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Mock badges data
 const BADGES = [
     { id: '1', name: 'Pemula', icon: '🌟', unlocked: true },
     { id: '2', name: 'Pelapor', icon: '📝', unlocked: true },
@@ -54,7 +48,6 @@ export default function ProfileScreen() {
     const colors = Colors[colorScheme];
     const { user, signOut } = useAuthStore();
 
-    // Mock user stats
     const stats = user?.stats || {
         totalReports: 12,
         totalUpvotes: 156,
@@ -98,7 +91,6 @@ export default function ProfileScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
             <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Header */}
                 <View style={styles.header}>
                     <Text style={[styles.headerTitle, { color: colors.text }]}>Profil</Text>
                     <TouchableOpacity onPress={() => router.push('/settings' as any)}>
@@ -106,7 +98,6 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Profile Card */}
                 <View style={[styles.profileCard, { backgroundColor: colors.surface }]}>
                     <View style={styles.profileHeader}>
                         <View style={[styles.avatar, { backgroundColor: Brand.primary }]}>
@@ -131,7 +122,6 @@ export default function ProfileScreen() {
                         </View>
                     </View>
 
-                    {/* Level Progress */}
                     <View style={styles.levelSection}>
                         <View style={styles.levelHeader}>
                             <View style={[styles.levelBadge, { backgroundColor: LevelColors[stats.level] + '20' }]}>
@@ -155,7 +145,6 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* Stats Cards */}
                 <View style={styles.statsContainer}>
                     <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
                         <FileText size={24} color={Brand.primary} />
@@ -174,7 +163,6 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* Badges */}
                 <View style={[styles.badgesCard, { backgroundColor: colors.surface }]}>
                     <View style={styles.badgesHeader}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>Lencana</Text>
@@ -203,7 +191,6 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* Impact Summary */}
                 <View style={[styles.impactCard, { backgroundColor: Brand.primary + '10' }]}>
                     <Text style={[styles.impactTitle, { color: Brand.primary }]}>🌟 Dampak Anda</Text>
                     <Text style={[styles.impactText, { color: colors.text }]}>
@@ -212,7 +199,6 @@ export default function ProfileScreen() {
                     </Text>
                 </View>
 
-                {/* Settings */}
                 <View style={styles.settingsSection}>
                     <Text style={[styles.sectionTitle, { color: colors.text, marginLeft: Spacing.lg }]}>
                         Pengaturan
@@ -225,7 +211,6 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* Sign Out */}
                 <TouchableOpacity
                     style={[styles.signOutButton, { borderColor: Brand.error }]}
                     onPress={handleSignOut}

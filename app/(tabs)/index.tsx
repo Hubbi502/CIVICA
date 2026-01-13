@@ -1,8 +1,3 @@
-/**
- * CIVICA Home Feed Screen
- * Main feed with posts from Firestore database
- */
-
 import FilterBar from '@/components/feed/FilterBar';
 import PostCard from '@/components/feed/PostCard';
 import { Brand, Colors, FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
@@ -13,23 +8,23 @@ import { useAuthStore } from '@/stores/authStore';
 import { FeedFilters, Post } from '@/types';
 import { router } from 'expo-router';
 import {
-  collection,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
+    collection,
+    limit,
+    onSnapshot,
+    orderBy,
+    query,
+    where,
 } from 'firebase/firestore';
 import { Bell, MapPin, Plus, Search } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -45,17 +40,14 @@ export default function HomeScreen() {
   const [upvotedPosts, setUpvotedPosts] = useState<Set<string>>(new Set());
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
 
-  // Build Firestore query based on filters
   const buildQuery = useCallback(() => {
     const postsRef = collection(db, 'posts');
     let constraints = [];
 
-    // Filter by type
     if (filters.type && filters.type !== 'all') {
       constraints.push(where('type', '==', filters.type));
     }
 
-    // Sort by
     if (filters.sortBy === 'trending') {
       constraints.push(orderBy('engagement.upvotes', 'desc'));
     } else {
@@ -67,13 +59,9 @@ export default function HomeScreen() {
     return query(postsRef, ...constraints);
   }, [filters]);
 
-  // Fetch posts from Firestore
   const fetchPosts = useCallback(async () => {
     try {
-      // The actual fetching is done by the onSnapshot listener
-      // This function is kept for pull-to-refresh compatibility
       setIsRefreshing(true);
-      // Small delay to show refresh indicator
       await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.error('Error refreshing posts:', error);
@@ -82,7 +70,6 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // Set up real-time listener
   useEffect(() => {
     setIsLoading(true);
 
@@ -109,7 +96,6 @@ export default function HomeScreen() {
             watchedBy: data.watchedBy || [],
             createdAt: data.createdAt?.toDate() || new Date(),
             updatedAt: data.updatedAt?.toDate() || new Date(),
-            // Report-specific fields
             ...(data.type === 'REPORT' && {
               status: data.status,
               severity: data.severity || data.classification?.severity,
@@ -122,7 +108,6 @@ export default function HomeScreen() {
         setPosts(newPosts);
         setIsLoading(false);
 
-        // Update upvoted posts based on current user
         if (user?.id) {
           const userUpvotes = new Set<string>();
           newPosts.forEach(post => {
@@ -148,7 +133,6 @@ export default function HomeScreen() {
     const newUpvoted = new Set(upvotedPosts);
     const wasUpvoted = newUpvoted.has(postId);
 
-    // Optimistic update
     if (wasUpvoted) {
       newUpvoted.delete(postId);
     } else {
@@ -156,7 +140,6 @@ export default function HomeScreen() {
     }
     setUpvotedPosts(newUpvoted);
 
-    // Update local post count optimistically
     setPosts(posts.map(p => {
       if (p.id === postId) {
         return {
@@ -172,12 +155,10 @@ export default function HomeScreen() {
       return p;
     }));
 
-    // Call Firestore to persist the change
     try {
       await toggleUpvote(postId, user.id);
     } catch (error) {
       console.error('Error toggling upvote:', error);
-      // Revert on error
       if (wasUpvoted) {
         newUpvoted.add(postId);
       } else {
@@ -272,7 +253,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push('/post/create')}

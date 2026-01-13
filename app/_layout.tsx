@@ -1,8 +1,3 @@
-/**
- * CIVICA Root Layout
- * Handles auth state and navigation routing
- */
-
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, router, useRootNavigationState, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -18,7 +13,6 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-// Custom theme extending default
 const CivicaLightTheme = {
   ...DefaultTheme,
   colors: {
@@ -55,17 +49,14 @@ function useProtectedRoute() {
     const inOnboardingGroup = segments[0] === '(onboarding)';
 
     if (!firebaseUser) {
-      // Not logged in, redirect to login
       if (!inAuthGroup) {
         router.replace('/(auth)/login');
       }
     } else if (!user) {
-      // Logged in but no profile (needs onboarding)
       if (!inOnboardingGroup && !isLoading) {
         router.replace('/(onboarding)/location');
       }
     } else {
-      // Logged in with profile, go to main app
       if (inAuthGroup || inOnboardingGroup) {
         router.replace('/(tabs)');
       }
@@ -77,16 +68,13 @@ export default function RootLayout() {
   const colorScheme = useColorScheme() ?? 'light';
   const { initialize, isInitialized } = useAuthStore();
 
-  // Initialize auth listener on mount
   useEffect(() => {
     const unsubscribe = initialize();
     return () => unsubscribe();
   }, []);
 
-  // Use protected route hook
   useProtectedRoute();
 
-  // Show loading while initializing auth
   if (!isInitialized) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: Colors[colorScheme].background }]}>

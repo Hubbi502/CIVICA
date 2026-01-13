@@ -1,10 +1,5 @@
-/**
- * CIVICA Post Categories and Tags
- */
-
 import { PostType, ReportStatus, SeverityLevel } from '@/types';
 
-// Post Type Definitions
 export interface PostTypeInfo {
     id: PostType;
     name: string;
@@ -44,7 +39,6 @@ export const PostTypes: Record<PostType, PostTypeInfo> = {
     },
 };
 
-// Report Categories
 export interface ReportCategory {
     id: string;
     name: string;
@@ -103,7 +97,6 @@ export const ReportCategories: ReportCategory[] = [
     },
 ];
 
-// Business Categories
 export interface BusinessCategory {
     id: string;
     name: string;
@@ -123,7 +116,6 @@ export const BusinessCategories: BusinessCategory[] = [
     { id: 'other', name: 'Lainnya', icon: 'more-horizontal' },
 ];
 
-// Search Categories for Discovery
 export interface SearchCategory {
     id: string;
     name: string;
@@ -143,7 +135,6 @@ export const SearchCategories: SearchCategory[] = [
     { id: 'parks', name: 'Taman', icon: 'trees', color: '#22C55E' },
 ];
 
-// Severity Definitions
 export interface SeverityInfo {
     id: SeverityLevel;
     name: string;
@@ -178,7 +169,6 @@ export const SeverityLevels: Record<SeverityLevel, SeverityInfo> = {
     },
 };
 
-// Report Status Definitions
 export interface StatusInfo {
     id: ReportStatus;
     name: string;
@@ -213,7 +203,6 @@ export const ReportStatuses: Record<ReportStatus, StatusInfo> = {
     },
 };
 
-// Distance Filter Options
 export const DistanceOptions = [
     { label: '5 km', value: 5 },
     { label: '10 km', value: 10 },
@@ -221,7 +210,6 @@ export const DistanceOptions = [
     { label: '50 km', value: 50 },
 ];
 
-// Sort Options
 export const SortOptions = [
     { label: 'Terbaru', value: 'recent' },
     { label: 'Trending', value: 'trending' },

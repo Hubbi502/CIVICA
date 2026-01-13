@@ -1,8 +1,3 @@
-/**
- * CIVICA Settings Screen
- * User preferences and app settings
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router } from 'expo-router';
@@ -44,7 +39,6 @@ export default function SettingsScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
 
-    // Local state for toggles
     const [notifications, setNotifications] = useState(true);
     const [darkMode, setDarkMode] = useState(colorScheme === 'dark');
     const [locationServices, setLocationServices] = useState(true);
@@ -95,7 +89,6 @@ export default function SettingsScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <ArrowLeft size={24} color={colors.text} />
@@ -105,7 +98,6 @@ export default function SettingsScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Account Section */}
                 <SectionHeader title="AKUN" />
                 <View style={styles.settingsGroup}>
                     <SettingsItem
@@ -125,7 +117,6 @@ export default function SettingsScreen() {
                     />
                 </View>
 
-                {/* Preferences Section */}
                 <SectionHeader title="PREFERENSI" />
                 <View style={styles.settingsGroup}>
                     <SettingsItem
@@ -157,7 +148,6 @@ export default function SettingsScreen() {
                     />
                 </View>
 
-                {/* Support Section */}
                 <SectionHeader title="DUKUNGAN" />
                 <View style={styles.settingsGroup}>
                     <SettingsItem

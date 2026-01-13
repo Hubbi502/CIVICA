@@ -1,7 +1,3 @@
-/**
- * CIVICA Login Screen
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/stores/authStore';
@@ -39,7 +35,6 @@ export default function LoginScreen() {
 
         try {
             await signIn(email.trim(), password);
-            // Navigation will happen automatically via auth state change
         } catch (err: any) {
             Alert.alert('Login Gagal', err.message || 'Terjadi kesalahan');
         }
@@ -62,7 +57,6 @@ export default function LoginScreen() {
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* Logo & Welcome */}
                 <View style={styles.header}>
                     <View style={[styles.logoContainer, { backgroundColor: Brand.primary }]}>
                         <MapPin size={40} color="#FFFFFF" />
@@ -76,9 +70,7 @@ export default function LoginScreen() {
                     </Text>
                 </View>
 
-                {/* Form */}
                 <View style={styles.form}>
-                    {/* Email Input */}
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: colors.text }]}>Email</Text>
                         <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -96,7 +88,6 @@ export default function LoginScreen() {
                         </View>
                     </View>
 
-                    {/* Password Input */}
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: colors.text }]}>Password</Text>
                         <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -123,14 +114,12 @@ export default function LoginScreen() {
                         </View>
                     </View>
 
-                    {/* Forgot Password */}
                     <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotButton}>
                         <Text style={[styles.forgotText, { color: Brand.primary }]}>
                             Lupa password?
                         </Text>
                     </TouchableOpacity>
 
-                    {/* Login Button */}
                     <TouchableOpacity
                         style={[styles.loginButton, isLoading && styles.buttonDisabled]}
                         onPress={handleLogin}
@@ -143,7 +132,6 @@ export default function LoginScreen() {
                         )}
                     </TouchableOpacity>
 
-                    {/* Register Link */}
                     <View style={styles.registerContainer}>
                         <Text style={[styles.registerText, { color: colors.textSecondary }]}>
                             Belum punya akun?{' '}

@@ -1,8 +1,3 @@
-/**
- * Post Card Component
- * Displays a single post in the feed
- */
-
 import { Brand, CategoryColors, Colors, FontSize, FontWeight, Radius, SeverityColors, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Post, PostType } from '@/types';
@@ -86,7 +81,6 @@ export default function PostCard({
             onPress={handlePress}
             activeOpacity={0.9}
         >
-            {/* Header */}
             <View style={styles.header}>
                 <View style={styles.authorInfo}>
                     <View style={[styles.avatar, { backgroundColor: colors.border }]}>
@@ -116,7 +110,6 @@ export default function PostCard({
                     </View>
                 </View>
 
-                {/* Type Badge */}
                 <View style={[styles.typeBadge, { backgroundColor: typeColor + '15' }]}>
                     <TypeIcon size={12} color={typeColor} />
                     <Text style={[styles.typeBadgeText, { color: typeColor }]}>
@@ -125,12 +118,10 @@ export default function PostCard({
                 </View>
             </View>
 
-            {/* Content */}
             <Text style={[styles.content, { color: colors.text }]} numberOfLines={3}>
                 {post.content}
             </Text>
 
-            {/* Image */}
             {post.media.length > 0 && (
                 <View style={styles.imageContainer}>
                     <Image
@@ -146,7 +137,6 @@ export default function PostCard({
                 </View>
             )}
 
-            {/* Report Severity Badge */}
             {post.type === 'REPORT' && (post as any).severity && (
                 <View style={styles.severityContainer}>
                     <View style={[
@@ -169,7 +159,6 @@ export default function PostCard({
                 </View>
             )}
 
-            {/* Tags */}
             {post.classification.tags.length > 0 && (
                 <View style={styles.tagsContainer}>
                     {post.classification.tags.slice(0, 3).map((tag) => (
@@ -182,7 +171,6 @@ export default function PostCard({
                 </View>
             )}
 
-            {/* Footer */}
             <View style={[styles.footer, { borderTopColor: colors.borderLight }]}>
                 <TouchableOpacity
                     style={styles.actionButton}

@@ -1,7 +1,3 @@
-/**
- * Onboarding Step 1: Location Selection
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/stores/authStore';
@@ -20,7 +16,6 @@ import {
     View,
 } from 'react-native';
 
-// Sample Indonesian cities and districts
 const CITIES = [
     {
         name: 'Jakarta',
@@ -76,7 +71,6 @@ export default function LocationScreen() {
             });
 
             if (address) {
-                // Try to match with our city list
                 const matchedCity = CITIES.find(c =>
                     address.city?.toLowerCase().includes(c.name.toLowerCase()) ||
                     address.region?.toLowerCase().includes(c.name.toLowerCase())
@@ -84,12 +78,10 @@ export default function LocationScreen() {
 
                 if (matchedCity) {
                     setSelectedCity(matchedCity.name);
-                    // Set first district as default
                     if (matchedCity.districts.length > 0) {
                         setSelectedDistrict(matchedCity.districts[0]);
                     }
                 } else {
-                    // If city not in list, use the detected address
                     setSelectedCity(address.city || address.region || 'Unknown');
                     setSelectedDistrict(address.district || address.subregion || 'Unknown');
                 }
@@ -121,7 +113,6 @@ export default function LocationScreen() {
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={styles.content}
         >
-            {/* Header */}
             <View style={styles.header}>
                 <View style={[styles.iconContainer, { backgroundColor: Brand.primary + '20' }]}>
                     <MapPin size={32} color={Brand.primary} />
@@ -132,7 +123,6 @@ export default function LocationScreen() {
                 </Text>
             </View>
 
-            {/* Auto Detect Button */}
             <TouchableOpacity
                 style={[styles.detectButton, { backgroundColor: Brand.primary }]}
                 onPress={handleDetectLocation}
@@ -154,7 +144,6 @@ export default function LocationScreen() {
                 <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
             </View>
 
-            {/* City Picker */}
             <View style={[styles.pickerGroup, { zIndex: showCityPicker ? 10 : 1 }]}>
                 <Text style={[styles.label, { color: colors.text }]}>Kota</Text>
                 <TouchableOpacity
@@ -230,7 +219,6 @@ export default function LocationScreen() {
                 )}
             </View>
 
-            {/* District Picker */}
             <View style={[styles.pickerGroup, { zIndex: showDistrictPicker ? 10 : 1 }]}>
                 <Text style={[styles.label, { color: colors.text }]}>Kecamatan / Area</Text>
                 <TouchableOpacity
@@ -312,7 +300,6 @@ export default function LocationScreen() {
                 )}
             </View>
 
-            {/* Continue Button */}
             <TouchableOpacity
                 style={[
                     styles.continueButton,

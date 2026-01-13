@@ -1,7 +1,3 @@
-/**
- * Onboarding Step 2: Interest Input
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { parseInterests } from '@/services/openRouter';
@@ -39,7 +35,6 @@ export default function InterestsScreen() {
             const combinedInterests = [...new Set([...result.interests, ...result.suggestedTags])];
             setInterests(combinedInterests.slice(0, 8));
         } catch (error) {
-            // Fallback: simple word extraction
             const words = inputText
                 .toLowerCase()
                 .split(/[\s,]+/)
@@ -69,12 +64,10 @@ export default function InterestsScreen() {
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={styles.content}
         >
-            {/* Back Button */}
             <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                 <ArrowLeft size={24} color={colors.text} />
             </TouchableOpacity>
 
-            {/* Header */}
             <View style={styles.header}>
                 <View style={[styles.iconContainer, { backgroundColor: Brand.error + '20' }]}>
                     <Heart size={32} color={Brand.error} />
@@ -85,7 +78,6 @@ export default function InterestsScreen() {
                 </Text>
             </View>
 
-            {/* Input Area */}
             <View style={styles.inputSection}>
                 <TextInput
                     style={[
@@ -109,7 +101,6 @@ export default function InterestsScreen() {
                 </Text>
             </View>
 
-            {/* Analyze Button */}
             <TouchableOpacity
                 style={[
                     styles.analyzeButton,
@@ -129,7 +120,6 @@ export default function InterestsScreen() {
                 )}
             </TouchableOpacity>
 
-            {/* Interests Tags */}
             {interests.length > 0 && (
                 <View style={styles.tagsSection}>
                     <Text style={[styles.tagsLabel, { color: colors.text }]}>
@@ -156,7 +146,6 @@ export default function InterestsScreen() {
                 </View>
             )}
 
-            {/* Continue Button */}
             <TouchableOpacity
                 style={[
                     styles.continueButton,
@@ -169,7 +158,6 @@ export default function InterestsScreen() {
                 <ChevronRight size={20} color="#FFFFFF" />
             </TouchableOpacity>
 
-            {/* Skip Option */}
             <TouchableOpacity
                 style={styles.skipButton}
                 onPress={() => {

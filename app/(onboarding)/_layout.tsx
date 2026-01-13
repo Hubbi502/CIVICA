@@ -1,7 +1,3 @@
-/**
- * Onboarding Layout with Progress Indicator
- */
-
 import { Brand, Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Stack, usePathname } from 'expo-router';
@@ -14,13 +10,11 @@ export default function OnboardingLayout() {
     const colors = Colors[colorScheme];
     const pathname = usePathname();
 
-    // Get current step from pathname
     const currentStep = STEPS.findIndex(step => pathname.includes(step));
     const progress = currentStep >= 0 ? (currentStep + 1) / STEPS.length : 0;
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Progress Bar */}
             <View style={[styles.progressContainer, { backgroundColor: colors.border }]}>
                 <View
                     style={[

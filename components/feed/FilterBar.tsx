@@ -1,8 +1,3 @@
-/**
- * Filter Bar Component
- * Displays filter options for the feed
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FeedFilters } from '@/types';

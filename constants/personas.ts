@@ -1,7 +1,3 @@
-/**
- * CIVICA Persona Definitions
- */
-
 import { PersonaType } from '@/types';
 
 export interface PersonaInfo {

@@ -1,8 +1,3 @@
-/**
- * Authentication Service for CIVICA
- * Handles Firebase Authentication operations
- */
-
 import { auth, db } from '@/FirebaseConfig';
 import { PersonaType, User, UserLocation, UserPreferences, UserStats } from '@/types';
 import {
@@ -16,7 +11,6 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, getDocFromCache, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 
-// Default user preferences
 const defaultPreferences: UserPreferences = {
     nearbyRadius: 10,
     notifications: {
@@ -29,7 +23,6 @@ const defaultPreferences: UserPreferences = {
     darkMode: false,
 };
 
-// Default user stats
 const defaultStats: UserStats = {
     totalReports: 0,
     totalUpvotes: 0,
@@ -38,9 +31,6 @@ const defaultStats: UserStats = {
     level: 'bronze',
 };
 
-/**
- * Register a new user with email and password
- */
 export const signUp = async (
     email: string,
     password: string
@@ -49,9 +39,6 @@ export const signUp = async (
     return userCredential.user;
 };
 
-/**
- * Sign in with email and password
- */
 export const signIn = async (
     email: string,
     password: string
@@ -60,23 +47,14 @@ export const signIn = async (
     return userCredential.user;
 };
 
-/**
- * Sign out the current user
- */
 export const signOut = async (): Promise<void> => {
     await firebaseSignOut(auth);
 };
 
-/**
- * Send password reset email
- */
 export const resetPassword = async (email: string): Promise<void> => {
     await sendPasswordResetEmail(auth, email);
 };
 
-/**
- * Create user profile in Firestore after registration
- */
 export const createUserProfile = async (
     userId: string,
     data: {
@@ -102,12 +80,10 @@ export const createUserProfile = async (
         updatedAt: new Date(),
     };
 
-    // Create a promise that rejects after 15 seconds
     const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Firestore write timeout - please check your internet connection')), 15000);
     });
 
-    // Race between the actual operation and the timeout
     await Promise.race([
         setDoc(doc(db, 'users', userId), {
             ...userDoc,
@@ -120,10 +96,6 @@ export const createUserProfile = async (
     console.log('[createUserProfile] Profile created successfully');
 };
 
-/**
- * Get user profile from Firestore
- * Falls back to cache if client is offline
- */
 export const getUserProfile = async (userId: string): Promise<User | null> => {
     const docRef = doc(db, 'users', userId);
 
@@ -142,7 +114,6 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
 
         return null;
     } catch (error: any) {
-        // If offline, try to get from cache
         if (error?.code === 'unavailable' || error?.message?.includes('offline')) {
             console.warn('Firestore offline, attempting to load from cache...');
             try {
@@ -164,9 +135,6 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
     }
 };
 
-/**
- * Update user profile in Firestore
- */
 export const updateUserProfile = async (
     userId: string,
     updates: Partial<User>
@@ -178,9 +146,6 @@ export const updateUserProfile = async (
     });
 };
 
-/**
- * Update Firebase Auth profile (displayName, photoURL)
- */
 export const updateAuthProfile = async (
     user: FirebaseUser,
     data: { displayName?: string; photoURL?: string }
@@ -188,25 +153,16 @@ export const updateAuthProfile = async (
     await updateProfile(user, data);
 };
 
-/**
- * Subscribe to auth state changes
- */
 export const onAuthChange = (
     callback: (user: FirebaseUser | null) => void
 ): (() => void) => {
     return onAuthStateChanged(auth, callback);
 };
 
-/**
- * Get current Firebase user
- */
 export const getCurrentUser = (): FirebaseUser | null => {
     return auth.currentUser;
 };
 
-/**
- * Check if user has completed onboarding
- */
 export const hasCompletedOnboarding = async (userId: string): Promise<boolean> => {
     const profile = await getUserProfile(userId);
     return profile !== null && profile.persona !== undefined;

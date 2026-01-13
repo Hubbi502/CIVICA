@@ -1,8 +1,3 @@
-/**
- * CIVICA Post Detail Screen
- * Shows full post with community updates
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, SeverityColors, Spacing, StatusColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatDistanceToNow } from 'date-fns';
@@ -32,7 +27,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Mock post data
 const MOCK_POST = {
     id: '1',
     authorName: 'Ahmad Sudirman',
@@ -88,7 +82,6 @@ export default function PostDetailScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-            {/* Header */}
             <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <ArrowLeft size={24} color={colors.text} />
@@ -109,7 +102,6 @@ export default function PostDetailScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Author Info */}
                 <View style={[styles.section, { backgroundColor: colors.surface }]}>
                     <View style={styles.authorRow}>
                         <View style={[styles.avatar, { backgroundColor: Brand.primary }]}>
@@ -129,7 +121,6 @@ export default function PostDetailScreen() {
                             </View>
                         </View>
 
-                        {/* Status Badge */}
                         <View style={[styles.statusBadge, { backgroundColor: StatusColors[post.status] + '15' }]}>
                             <CheckCircle size={14} color={StatusColors[post.status]} />
                             <Text style={[styles.statusText, { color: StatusColors[post.status] }]}>
@@ -138,12 +129,10 @@ export default function PostDetailScreen() {
                         </View>
                     </View>
 
-                    {/* Content */}
                     <Text style={[styles.content, { color: colors.text }]}>
                         {post.content}
                     </Text>
 
-                    {/* Images */}
                     {post.media.length > 0 && (
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesContainer}>
                             {post.media.map((media, index) => (
@@ -156,7 +145,6 @@ export default function PostDetailScreen() {
                         </ScrollView>
                     )}
 
-                    {/* Location */}
                     <View style={[styles.locationCard, { backgroundColor: colors.surfaceSecondary }]}>
                         <MapPin size={16} color={Brand.primary} />
                         <Text style={[styles.locationText, { color: colors.text }]}>
@@ -164,7 +152,6 @@ export default function PostDetailScreen() {
                         </Text>
                     </View>
 
-                    {/* Severity */}
                     <View style={styles.severityRow}>
                         <AlertTriangle size={16} color={SeverityColors[post.severity]} />
                         <Text style={[styles.severityLabel, { color: colors.textSecondary }]}>
@@ -178,7 +165,6 @@ export default function PostDetailScreen() {
                     </View>
                 </View>
 
-                {/* Engagement Stats */}
                 <View style={[styles.statsRow, { backgroundColor: colors.surface }]}>
                     <View style={styles.statItem}>
                         <ArrowUp size={18} color={colors.textSecondary} />
@@ -206,7 +192,6 @@ export default function PostDetailScreen() {
                     </View>
                 </View>
 
-                {/* Community Updates */}
                 <View style={[styles.section, { backgroundColor: colors.surface }]}>
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -221,7 +206,6 @@ export default function PostDetailScreen() {
                     </View>
 
                     <View style={styles.timeline}>
-                        {/* Initial Report */}
                         <View style={styles.timelineItem}>
                             <View style={[styles.timelineDot, { backgroundColor: Brand.primary }]} />
                             <View style={styles.timelineContent}>
@@ -234,7 +218,6 @@ export default function PostDetailScreen() {
                             </View>
                         </View>
 
-                        {/* Updates */}
                         {post.updates.map((update) => (
                             <View key={update.id} style={styles.timelineItem}>
                                 <View style={[styles.timelineDot, { backgroundColor: Brand.success }]} />
@@ -258,7 +241,6 @@ export default function PostDetailScreen() {
                 </View>
             </ScrollView>
 
-            {/* Bottom Actions */}
             <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
                 <TouchableOpacity
                     style={[styles.actionButton, isUpvoted && { backgroundColor: Brand.primary + '15' }]}

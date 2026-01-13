@@ -1,7 +1,3 @@
-/**
- * CIVICA Register Screen
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/stores/authStore';
@@ -35,7 +31,6 @@ export default function RegisterScreen() {
     const [agreeTerms, setAgreeTerms] = useState(false);
 
     const handleRegister = async () => {
-        // Validation
         if (!name.trim()) {
             Alert.alert('Error', 'Mohon isi nama lengkap');
             return;
@@ -59,7 +54,6 @@ export default function RegisterScreen() {
 
         try {
             await signUp(email.trim(), password);
-            // Navigate to onboarding after successful registration
             router.replace('/(onboarding)/location');
         } catch (err: any) {
             Alert.alert('Registrasi Gagal', err.message || 'Terjadi kesalahan');
@@ -79,7 +73,6 @@ export default function RegisterScreen() {
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                         <ArrowLeft size={24} color={colors.text} />
@@ -90,9 +83,7 @@ export default function RegisterScreen() {
                     </Text>
                 </View>
 
-                {/* Form */}
                 <View style={styles.form}>
-                    {/* Name Input */}
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: colors.text }]}>Nama Lengkap</Text>
                         <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -108,7 +99,6 @@ export default function RegisterScreen() {
                         </View>
                     </View>
 
-                    {/* Email Input */}
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: colors.text }]}>Email</Text>
                         <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -126,7 +116,6 @@ export default function RegisterScreen() {
                         </View>
                     </View>
 
-                    {/* Password Input */}
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: colors.text }]}>Password</Text>
                         <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -153,7 +142,6 @@ export default function RegisterScreen() {
                         </View>
                     </View>
 
-                    {/* Confirm Password Input */}
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: colors.text }]}>Konfirmasi Password</Text>
                         <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -170,7 +158,6 @@ export default function RegisterScreen() {
                         </View>
                     </View>
 
-                    {/* Terms Checkbox */}
                     <TouchableOpacity
                         style={styles.termsContainer}
                         onPress={() => setAgreeTerms(!agreeTerms)}
@@ -190,7 +177,6 @@ export default function RegisterScreen() {
                         </Text>
                     </TouchableOpacity>
 
-                    {/* Register Button */}
                     <TouchableOpacity
                         style={[styles.registerButton, isLoading && styles.buttonDisabled]}
                         onPress={handleRegister}
@@ -203,7 +189,6 @@ export default function RegisterScreen() {
                         )}
                     </TouchableOpacity>
 
-                    {/* Login Link */}
                     <View style={styles.loginContainer}>
                         <Text style={[styles.loginText, { color: colors.textSecondary }]}>
                             Sudah punya akun?{' '}

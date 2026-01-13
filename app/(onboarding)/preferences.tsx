@@ -1,7 +1,3 @@
-/**
- * Onboarding Step 4: Preferences & Complete
- */
-
 import { Personas } from '@/constants/personas';
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -36,12 +32,10 @@ export default function PreferencesScreen() {
     const [preferences, setPreferences] = useState<string[]>([]);
     const [selectedPreferences, setSelectedPreferences] = useState<Set<string>>(new Set());
 
-    // Load default preferences based on persona
     useEffect(() => {
         if (onboardingData.persona) {
             const personaInfo = Personas[onboardingData.persona];
             setPreferences(personaInfo.defaultPreferences);
-            // Pre-select all by default
             setSelectedPreferences(new Set(personaInfo.defaultPreferences));
         }
     }, [onboardingData.persona]);
@@ -65,7 +59,6 @@ export default function PreferencesScreen() {
         try {
             setOnboardingPreferences(Array.from(selectedPreferences));
             await completeOnboarding(displayName.trim());
-            // Navigation to main app will happen automatically via auth state
             router.replace('/(tabs)');
         } catch (err: any) {
             Alert.alert('Error', err.message || 'Gagal menyelesaikan pendaftaran');
@@ -83,12 +76,10 @@ export default function PreferencesScreen() {
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={styles.content}
         >
-            {/* Back Button */}
             <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                 <ArrowLeft size={24} color={colors.text} />
             </TouchableOpacity>
 
-            {/* Header */}
             <View style={styles.header}>
                 <View style={[styles.iconContainer, { backgroundColor: Brand.info + '20' }]}>
                     <Settings size={32} color={Brand.info} />
@@ -99,7 +90,6 @@ export default function PreferencesScreen() {
                 </Text>
             </View>
 
-            {/* Display Name Input */}
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Nama Tampilan</Text>
                 <TextInput
@@ -119,7 +109,6 @@ export default function PreferencesScreen() {
                 />
             </View>
 
-            {/* AI Generated Preferences */}
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -168,7 +157,6 @@ export default function PreferencesScreen() {
                 </View>
             </View>
 
-            {/* Summary */}
             <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={[styles.summaryTitle, { color: colors.text }]}>Ringkasan</Text>
                 <View style={styles.summaryItem}>
@@ -191,7 +179,6 @@ export default function PreferencesScreen() {
                 </View>
             </View>
 
-            {/* Complete Button */}
             <TouchableOpacity
                 style={[
                     styles.completeButton,

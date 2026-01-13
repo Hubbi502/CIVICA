@@ -1,8 +1,3 @@
-/**
- * CIVICA Tab Layout
- * 5-tab bottom navigation
- */
-
 import { Brand, Colors, Shadows } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Tabs } from 'expo-router';

@@ -1,7 +1,3 @@
-/**
- * Auth Store - Zustand State Management for Authentication
- */
-
 import * as authService from '@/services/auth';
 import { PersonaType, User, UserLocation } from '@/types';
 import { User as FirebaseUser } from 'firebase/auth';
@@ -15,40 +11,33 @@ interface OnboardingData {
 }
 
 interface AuthState {
-    // State
     firebaseUser: FirebaseUser | null;
     user: User | null;
     isLoading: boolean;
     isInitialized: boolean;
     error: string | null;
 
-    // Onboarding wizard data
     onboardingData: OnboardingData;
 
-    // Actions
     initialize: () => () => void;
     signUp: (email: string, password: string) => Promise<void>;
     signIn: (email: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
 
-    // Onboarding
     setOnboardingLocation: (location: UserLocation) => void;
     setOnboardingInterests: (interests: string[]) => void;
     setOnboardingPersona: (persona: PersonaType) => void;
     setOnboardingPreferences: (preferences: string[]) => void;
     completeOnboarding: (displayName: string) => Promise<void>;
 
-    // Profile
     refreshProfile: () => Promise<void>;
     updateProfile: (updates: Partial<User>) => Promise<void>;
 
-    // Utilities
     clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-    // Initial state
     firebaseUser: null,
     user: null,
     isLoading: true,
@@ -56,7 +45,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     error: null,
     onboardingData: {},
 
-    // Initialize auth listener
     initialize: () => {
         const unsubscribe = authService.onAuthChange(async (firebaseUser) => {
             set({ isLoading: true });
@@ -93,7 +81,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return unsubscribe;
     },
 
-    // Sign up with email/password
     signUp: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
@@ -108,7 +95,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
     },
 
-    // Sign in with email/password
     signIn: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
@@ -128,7 +114,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
     },
 
-    // Sign out
     signOut: async () => {
         set({ isLoading: true, error: null });
         try {
@@ -148,7 +133,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
     },
 
-    // Reset password
     resetPassword: async (email: string) => {
         set({ isLoading: true, error: null });
         try {
@@ -163,7 +147,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
     },
 
-    // Onboarding setters
     setOnboardingLocation: (location: UserLocation) => {
         set((state) => ({
             onboardingData: { ...state.onboardingData, location },
@@ -188,7 +171,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }));
     },
 
-    // Complete onboarding and create profile
     completeOnboarding: async (displayName: string) => {
         const { firebaseUser, onboardingData } = get();
 
@@ -211,11 +193,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         try {
             console.log('[completeOnboarding] Updating Firebase Auth profile...');
-            // Update Firebase Auth profile
             await authService.updateAuthProfile(firebaseUser, { displayName });
 
             console.log('[completeOnboarding] Creating Firestore user profile...');
-            // Create Firestore user profile
             await authService.createUserProfile(firebaseUser.uid, {
                 email: firebaseUser.email!,
                 displayName,
@@ -225,7 +205,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             });
 
             console.log('[completeOnboarding] Reloading profile...');
-            // Reload profile
             const profile = await authService.getUserProfile(firebaseUser.uid);
 
             console.log('[completeOnboarding] Success! Profile:', profile);
@@ -244,7 +223,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
     },
 
-    // Refresh user profile from Firestore
     refreshProfile: async () => {
         const { firebaseUser } = get();
         if (!firebaseUser) return;
@@ -257,7 +235,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
     },
 
-    // Update user profile
     updateProfile: async (updates: Partial<User>) => {
         const { firebaseUser, user } = get();
         if (!firebaseUser || !user) return;
@@ -279,6 +256,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
     },
 
-    // Clear error
     clearError: () => set({ error: null }),
 }));

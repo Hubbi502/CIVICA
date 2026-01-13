@@ -1,9 +1,3 @@
-/**
- * CIVICA City Pulse Screen
- * Dashboard with city statistics, urgent issues, and top contributors
- * Data fetched from Firestore database
- */
-
 import { db } from '@/FirebaseConfig';
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -43,7 +37,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Types for the dashboard
 interface TodaysSnapshot {
     newReports: { value: number; change: number; isUp: boolean };
     resolved: { value: number; change: number; isUp: boolean };
@@ -83,7 +76,6 @@ const SEVERITY_COLORS = {
 
 const SEVERITY_ORDER: SeverityLevel[] = ['critical', 'high', 'medium', 'low'];
 
-// Helper function to format time ago
 const formatTimeAgo = (date: Date): string => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -97,21 +89,18 @@ const formatTimeAgo = (date: Date): string => {
     return `${diffDays} hari`;
 };
 
-// Helper to get start of today
 const getStartOfToday = (): Date => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     return now;
 };
 
-// Helper to get start of yesterday
 const getStartOfYesterday = (): Date => {
     const date = getStartOfToday();
     date.setDate(date.getDate() - 1);
     return date;
 };
 
-// Helper to get day name in Indonesian
 const getDayName = (daysAgo: number): string => {
     const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
     const date = new Date();
@@ -123,7 +112,6 @@ export default function PulseScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
 
-    // State for data
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [todaysSnapshot, setTodaysSnapshot] = useState<TodaysSnapshot>({
@@ -136,14 +124,12 @@ export default function PulseScreen() {
     const [topContributors, setTopContributors] = useState<Contributor[]>([]);
     const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
 
-    // Fetch today's snapshot data
     const fetchTodaysSnapshot = async () => {
         try {
             const postsRef = collection(db, 'posts');
             const startOfToday = getStartOfToday();
             const startOfYesterday = getStartOfYesterday();
 
-            // Get today's reports
             const todayQuery = query(
                 postsRef,
                 where('type', '==', 'REPORT'),
@@ -152,7 +138,6 @@ export default function PulseScreen() {
             const todaySnapshot = await getDocs(todayQuery);
             const todayReports = todaySnapshot.size;
 
-            // Get yesterday's reports for comparison
             const yesterdayQuery = query(
                 postsRef,
                 where('type', '==', 'REPORT'),
@@ -162,12 +147,10 @@ export default function PulseScreen() {
             const yesterdaySnapshot = await getDocs(yesterdayQuery);
             const yesterdayReports = yesterdaySnapshot.size;
 
-            // Calculate change percentage
             const reportsChange = yesterdayReports > 0
                 ? Math.round(((todayReports - yesterdayReports) / yesterdayReports) * 100)
                 : todayReports > 0 ? 100 : 0;
 
-            // Get resolved reports today
             const resolvedQuery = query(
                 postsRef,
                 where('type', '==', 'REPORT'),
@@ -177,7 +160,6 @@ export default function PulseScreen() {
             const resolvedSnapshot = await getDocs(resolvedQuery);
             const resolvedToday = resolvedSnapshot.size;
 
-            // Get unique active users (authors who posted today)
             const activeUsersSet = new Set<string>();
             todaySnapshot.docs.forEach(doc => {
                 const data = doc.data();
@@ -187,7 +169,6 @@ export default function PulseScreen() {
             });
             const activeUsers = activeUsersSet.size;
 
-            // Calculate average response time (simplified)
             let totalResponseTime = 0;
             let responseCount = 0;
             resolvedSnapshot.docs.forEach(doc => {
@@ -212,7 +193,7 @@ export default function PulseScreen() {
                 },
                 resolved: {
                     value: resolvedToday,
-                    change: 0, // Could calculate if needed
+                    change: 0,
                     isUp: true
                 },
                 activeUsers: {
@@ -231,12 +212,10 @@ export default function PulseScreen() {
         }
     };
 
-    // Fetch urgent issues (high severity reports)
     const fetchUrgentIssues = async () => {
         try {
             const postsRef = collection(db, 'posts');
 
-            // Query for active reports with high/critical severity
             const urgentQuery = query(
                 postsRef,
                 where('type', '==', 'REPORT'),
@@ -252,7 +231,6 @@ export default function PulseScreen() {
                 const data = doc.data();
                 const severity = data.severity || data.classification?.severity || 'medium';
 
-                // Only include high and critical severity
                 if (severity === 'critical' || severity === 'high' || severity === 'medium') {
                     const createdAt = data.createdAt?.toDate() || new Date();
                     issues.push({
@@ -268,7 +246,6 @@ export default function PulseScreen() {
                 }
             });
 
-            // Sort by severity priority
             issues.sort((a, b) => {
                 return SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity);
             });
@@ -279,12 +256,10 @@ export default function PulseScreen() {
         }
     };
 
-    // Fetch top contributors
     const fetchTopContributors = async () => {
         try {
             const postsRef = collection(db, 'posts');
 
-            // Get all posts and aggregate by author
             const postsQuery = query(
                 postsRef,
                 where('type', '==', 'REPORT'),
@@ -316,24 +291,21 @@ export default function PulseScreen() {
                 }
             });
 
-            // Convert to array and sort by reports
             const contributors: Contributor[] = [];
             let rank = 1;
             contributorMap.forEach((value, key) => {
                 contributors.push({
                     id: key,
                     name: value.name,
-                    points: value.reports * 10 + value.upvotes * 2, // Simple points calculation
+                    points: value.reports * 10 + value.upvotes * 2,
                     reports: value.reports,
                     avatar: rank <= 3 ? ['🏆', '🥈', '🥉'][rank - 1] : `${rank}`,
                 });
                 rank++;
             });
 
-            // Sort by points and get top 5
             contributors.sort((a, b) => b.points - a.points);
 
-            // Update avatar based on new ranking
             contributors.forEach((c, i) => {
                 c.avatar = i < 3 ? ['🏆', '🥈', '🥉'][i] : `${i + 1}`;
             });
@@ -344,13 +316,11 @@ export default function PulseScreen() {
         }
     };
 
-    // Fetch weekly data
     const fetchWeeklyData = async () => {
         try {
             const postsRef = collection(db, 'posts');
             const data: WeeklyData[] = [];
 
-            // Get data for last 7 days
             for (let i = 6; i >= 0; i--) {
                 const dayStart = new Date();
                 dayStart.setDate(dayStart.getDate() - i);
@@ -359,7 +329,6 @@ export default function PulseScreen() {
                 const dayEnd = new Date(dayStart);
                 dayEnd.setHours(23, 59, 59, 999);
 
-                // Query for reports created on this day
                 const reportsQuery = query(
                     postsRef,
                     where('type', '==', 'REPORT'),
@@ -389,7 +358,6 @@ export default function PulseScreen() {
         }
     };
 
-    // Refresh all data
     const refreshData = useCallback(async () => {
         setRefreshing(true);
         await Promise.all([
@@ -401,7 +369,6 @@ export default function PulseScreen() {
         setRefreshing(false);
     }, []);
 
-    // Initial data load
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
@@ -416,12 +383,10 @@ export default function PulseScreen() {
 
         loadData();
 
-        // Set up real-time listener for posts
         const postsRef = collection(db, 'posts');
         const unsubscribe = onSnapshot(
             query(postsRef, orderBy('createdAt', 'desc'), limit(50)),
             () => {
-                // Refresh data when posts change
                 fetchTodaysSnapshot();
                 fetchUrgentIssues();
                 fetchTopContributors();
@@ -436,7 +401,6 @@ export default function PulseScreen() {
 
     const maxReports = Math.max(...(weeklyData.length > 0 ? weeklyData.map(d => d.reports) : [1]), 1);
 
-    // Stat Card Component
     const StatCard = ({
         icon: Icon,
         iconColor,
@@ -474,14 +438,12 @@ export default function PulseScreen() {
         </View>
     );
 
-    // Simple Bar Chart Component
     const BarChart = () => (
         <View style={styles.chartContainer}>
             <View style={styles.chartBars}>
                 {weeklyData.map((item: WeeklyData, index: number) => (
                     <View key={index} style={styles.barGroup}>
                         <View style={styles.barsWrapper}>
-                            {/* Reports bar */}
                             <View
                                 style={[
                                     styles.bar,
@@ -492,7 +454,6 @@ export default function PulseScreen() {
                                     }
                                 ]}
                             />
-                            {/* Resolved bar */}
                             <View
                                 style={[
                                     styles.bar,
@@ -523,7 +484,6 @@ export default function PulseScreen() {
         </View>
     );
 
-    // Loading state
     if (loading) {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -550,7 +510,6 @@ export default function PulseScreen() {
                     />
                 }
             >
-                {/* Header */}
                 <View style={styles.header}>
                     <View>
                         <Text style={[styles.headerTitle, { color: colors.text }]}>Laporan Kota</Text>
@@ -564,7 +523,6 @@ export default function PulseScreen() {
                     </View>
                 </View>
 
-                {/* Today's Snapshot */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
                         📊 Ringkasan Hari Ini
@@ -605,7 +563,6 @@ export default function PulseScreen() {
                     </View>
                 </View>
 
-                {/* Weekly Report Chart */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -618,7 +575,6 @@ export default function PulseScreen() {
                     </View>
                 </View>
 
-                {/* Urgent Issues */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -676,7 +632,6 @@ export default function PulseScreen() {
                     </View>
                 </View>
 
-                {/* Top Contributors */}
                 <View style={[styles.section, styles.lastSection]}>
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>

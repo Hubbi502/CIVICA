@@ -1,47 +1,37 @@
-/**
- * CIVICA Theme System
- * Modern, clean interface with blue primary colors
- */
-
 import { Platform } from 'react-native';
 
-// Brand Colors
 export const Brand = {
-  primary: '#2563EB',      // Blue 600
-  primaryDark: '#1E40AF',  // Blue 800
-  primaryLight: '#3B82F6', // Blue 500
-  accent: '#0EA5E9',       // Sky 500
-  success: '#10B981',      // Emerald 500
-  warning: '#F59E0B',      // Amber 500
-  error: '#EF4444',        // Red 500
-  info: '#6366F1',         // Indigo 500
+  primary: '#2563EB',
+  primaryDark: '#1E40AF',
+  primaryLight: '#3B82F6',
+  accent: '#0EA5E9',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  info: '#6366F1',
 };
 
-// Category Colors
 export const CategoryColors = {
-  report: '#EF4444',      // Red for reports/issues
-  promotion: '#10B981',   // Green for business/promotions
-  news: '#3B82F6',        // Blue for news/info
-  general: '#6B7280',     // Gray for general
+  report: '#EF4444',
+  promotion: '#10B981',
+  news: '#3B82F6',
+  general: '#6B7280',
 };
 
-// Severity Colors (for reports)
 export const SeverityColors = {
-  low: '#10B981',         // Green
-  medium: '#F59E0B',      // Amber
-  high: '#EF4444',        // Red
-  critical: '#7C2D12',    // Deep red
+  low: '#10B981',
+  medium: '#F59E0B',
+  high: '#EF4444',
+  critical: '#7C2D12',
 };
 
-// Status Colors
 export const StatusColors = {
-  active: '#3B82F6',      // Blue
-  verified: '#10B981',    // Green
-  resolved: '#6B7280',    // Gray
-  closed: '#9CA3AF',      // Light gray
+  active: '#3B82F6',
+  verified: '#10B981',
+  resolved: '#6B7280',
+  closed: '#9CA3AF',
 };
 
-// Level Badge Colors
 export const LevelColors = {
   bronze: '#CD7F32',
   silver: '#C0C0C0',
@@ -49,65 +39,53 @@ export const LevelColors = {
   diamond: '#B9F2FF',
 };
 
-// Theme Colors
 export const Colors = {
   light: {
-    // Base
-    text: '#111827',           // Gray 900
-    textSecondary: '#6B7280',  // Gray 500
-    textMuted: '#9CA3AF',      // Gray 400
-    background: '#F3F4F6',     // Gray 100
-    surface: '#FFFFFF',        // White
-    surfaceSecondary: '#F9FAFB', // Gray 50
+    text: '#111827',
+    textSecondary: '#6B7280',
+    textMuted: '#9CA3AF',
+    background: '#F3F4F6',
+    surface: '#FFFFFF',
+    surfaceSecondary: '#F9FAFB',
 
-    // Interactive
     tint: Brand.primary,
     icon: '#6B7280',
     tabIconDefault: '#6B7280',
     tabIconSelected: Brand.primary,
 
-    // Borders
-    border: '#E5E7EB',         // Gray 200
-    borderLight: '#F3F4F6',    // Gray 100
+    border: '#E5E7EB',
+    borderLight: '#F3F4F6',
 
-    // Shadows
     shadow: 'rgba(0, 0, 0, 0.1)',
     shadowStrong: 'rgba(0, 0, 0, 0.15)',
 
-    // Overlays
     overlay: 'rgba(0, 0, 0, 0.5)',
     overlayLight: 'rgba(0, 0, 0, 0.3)',
   },
   dark: {
-    // Base
-    text: '#F9FAFB',           // Gray 50
-    textSecondary: '#9CA3AF',  // Gray 400
-    textMuted: '#6B7280',      // Gray 500
-    background: '#111827',     // Gray 900
-    surface: '#1F2937',        // Gray 800
-    surfaceSecondary: '#374151', // Gray 700
+    text: '#F9FAFB',
+    textSecondary: '#9CA3AF',
+    textMuted: '#6B7280',
+    background: '#111827',
+    surface: '#1F2937',
+    surfaceSecondary: '#374151',
 
-    // Interactive
-    tint: '#60A5FA',           // Blue 400
+    tint: '#60A5FA',
     icon: '#9CA3AF',
     tabIconDefault: '#9CA3AF',
     tabIconSelected: '#60A5FA',
 
-    // Borders
-    border: '#374151',         // Gray 700
-    borderLight: '#1F2937',    // Gray 800
+    border: '#374151',
+    borderLight: '#1F2937',
 
-    // Shadows
     shadow: 'rgba(0, 0, 0, 0.3)',
     shadowStrong: 'rgba(0, 0, 0, 0.5)',
 
-    // Overlays
     overlay: 'rgba(0, 0, 0, 0.7)',
     overlayLight: 'rgba(0, 0, 0, 0.5)',
   },
 };
 
-// Spacing Scale
 export const Spacing = {
   xs: 4,
   sm: 8,
@@ -119,7 +97,6 @@ export const Spacing = {
   '4xl': 64,
 };
 
-// Border Radius
 export const Radius = {
   sm: 4,
   md: 8,
@@ -129,7 +106,6 @@ export const Radius = {
   full: 9999,
 };
 
-// Font Sizes
 export const FontSize = {
   xs: 10,
   sm: 12,
@@ -141,7 +117,6 @@ export const FontSize = {
   '4xl': 32,
 };
 
-// Font Weights (as strings for RN)
 export const FontWeight = {
   normal: '400' as const,
   medium: '500' as const,
@@ -149,7 +124,6 @@ export const FontWeight = {
   bold: '700' as const,
 };
 
-// Font Families
 export const Fonts = Platform.select({
   ios: {
     sans: 'System',
@@ -168,7 +142,6 @@ export const Fonts = Platform.select({
   },
 });
 
-// Shadows
 export const Shadows = {
   sm: {
     shadowColor: '#000',
@@ -200,7 +173,6 @@ export const Shadows = {
   },
 };
 
-// Z-Index Scale
 export const ZIndex = {
   base: 0,
   dropdown: 10,

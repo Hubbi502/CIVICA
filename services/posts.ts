@@ -1,8 +1,3 @@
-/**
- * CIVICA Posts Service
- * Handles post CRUD operations with Firestore
- */
-
 import { db } from '@/FirebaseConfig';
 import { AIClassification, FeedFilters, Post, PostLocation, ReportUpdate } from '@/types';
 import {
@@ -29,9 +24,6 @@ import {
 const POSTS_COLLECTION = 'posts';
 const POSTS_PER_PAGE = 20;
 
-/**
- * Convert Firestore document to Post object
- */
 const docToPost = (doc: DocumentSnapshot): Post => {
     const data = doc.data()!;
     return {
@@ -42,9 +34,6 @@ const docToPost = (doc: DocumentSnapshot): Post => {
     } as Post;
 };
 
-/**
- * Get posts with filters
- */
 export const getPosts = async (
     filters: FeedFilters = {},
     lastDoc?: DocumentSnapshot
@@ -52,24 +41,20 @@ export const getPosts = async (
     try {
         let q = query(collection(db, POSTS_COLLECTION));
 
-        // Filter by type
         if (filters.type && filters.type !== 'all') {
             q = query(q, where('type', '==', filters.type));
         }
 
-        // Filter by status (for reports)
         if (filters.status) {
             q = query(q, where('status', '==', filters.status));
         }
 
-        // Sort
         if (filters.sortBy === 'trending') {
             q = query(q, orderBy('engagement.upvotes', 'desc'));
         } else {
             q = query(q, orderBy('createdAt', 'desc'));
         }
 
-        // Pagination
         q = query(q, limit(POSTS_PER_PAGE));
         if (lastDoc) {
             q = query(q, startAfter(lastDoc));
@@ -86,9 +71,6 @@ export const getPosts = async (
     }
 };
 
-/**
- * Get posts by user
- */
 export const getPostsByUser = async (userId: string): Promise<Post[]> => {
     try {
         const q = query(
@@ -104,9 +86,6 @@ export const getPostsByUser = async (userId: string): Promise<Post[]> => {
     }
 };
 
-/**
- * Get single post by ID
- */
 export const getPost = async (postId: string): Promise<Post | null> => {
     try {
         const docRef = doc(db, POSTS_COLLECTION, postId);
@@ -122,9 +101,6 @@ export const getPost = async (postId: string): Promise<Post | null> => {
     }
 };
 
-/**
- * Create a new post
- */
 export const createPost = async (
     postData: {
         authorId: string;
@@ -160,7 +136,6 @@ export const createPost = async (
             },
             upvotedBy: [],
             watchedBy: [],
-            // Report-specific fields
             ...(postData.classification.category === 'REPORT' && {
                 status: 'active',
                 severity: postData.classification.severity || 'medium',
@@ -179,9 +154,6 @@ export const createPost = async (
     }
 };
 
-/**
- * Update a post
- */
 export const updatePost = async (
     postId: string,
     updates: Partial<Post>

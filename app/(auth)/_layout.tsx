@@ -1,7 +1,3 @@
-/**
- * Auth Layout
- */
-
 import { Stack } from 'expo-router';
 
 export default function AuthLayout() {

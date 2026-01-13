@@ -1,9 +1,3 @@
-/**
- * CIVICA Create Post Screen
- * Full-featured post creation with AI classification
- * Connected to Firestore database
- */
-
 import { Brand, CategoryColors, Colors, FontSize, FontWeight, Radius, SeverityColors, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { classifyPost } from '@/services/openRouter';
@@ -108,7 +102,6 @@ export default function CreatePostScreen() {
         setIsAnalyzing(true);
 
         try {
-            // Use real AI classification
             const result = await classifyPost(images, content);
             setClassification(result);
             setShowClassificationModal(true);
@@ -126,13 +119,11 @@ export default function CreatePostScreen() {
         setIsSubmitting(true);
 
         try {
-            // Upload images to Firebase Storage
             let mediaUrls: string[] = [];
             if (images.length > 0) {
                 mediaUrls = await uploadImages(images, `posts/${user.id}`);
             }
 
-            // Create post in Firestore
             await createPost({
                 authorId: user.id,
                 authorName: user.displayName || 'User',
@@ -176,7 +167,6 @@ export default function CreatePostScreen() {
             >
                 <View style={styles.modalOverlay}>
                     <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-                        {/* Header */}
                         <View style={styles.modalHeader}>
                             <View style={styles.modalHeaderLeft}>
                                 <Sparkles size={20} color={Brand.accent} />
@@ -189,7 +179,6 @@ export default function CreatePostScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Category */}
                         <View style={[styles.categoryCard, { backgroundColor: config.color + '10' }]}>
                             <TypeIcon size={32} color={config.color} />
                             <View style={styles.categoryInfo}>
@@ -207,7 +196,6 @@ export default function CreatePostScreen() {
                             </View>
                         </View>
 
-                        {/* Severity (for reports) */}
                         {classification.severity && (
                             <View style={styles.infoRow}>
                                 <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
@@ -229,7 +217,6 @@ export default function CreatePostScreen() {
                             </View>
                         )}
 
-                        {/* Tags */}
                         {classification.tags.length > 0 && (
                             <View style={styles.tagsSection}>
                                 <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
@@ -247,7 +234,6 @@ export default function CreatePostScreen() {
                             </View>
                         )}
 
-                        {/* Actions */}
                         <View style={styles.modalActions}>
                             <TouchableOpacity
                                 style={[styles.editButton, { borderColor: colors.border }]}
@@ -282,7 +268,6 @@ export default function CreatePostScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-            {/* Header */}
             <View style={[styles.header, { borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={() => router.back()}>
                     <X size={24} color={colors.text} />
@@ -305,7 +290,6 @@ export default function CreatePostScreen() {
             </View>
 
             <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-                {/* User Info */}
                 <View style={styles.userRow}>
                     <View style={[styles.avatar, { backgroundColor: Brand.primary }]}>
                         <Text style={styles.avatarText}>
@@ -335,7 +319,6 @@ export default function CreatePostScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Text Input */}
                 <TextInput
                     style={[styles.textInput, { color: colors.text }]}
                     placeholder="Apa yang ingin Anda bagikan?"
@@ -351,7 +334,6 @@ export default function CreatePostScreen() {
                     {content.length}/500
                 </Text>
 
-                {/* Images */}
                 {images.length > 0 && (
                     <ScrollView
                         horizontal
@@ -373,7 +355,6 @@ export default function CreatePostScreen() {
                     </ScrollView>
                 )}
 
-                {/* Media Buttons */}
                 <View style={styles.mediaButtons}>
                     <TouchableOpacity
                         style={[styles.mediaButton, { backgroundColor: colors.surface }]}
@@ -396,7 +377,6 @@ export default function CreatePostScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* AI Processing Info */}
                 <View style={[styles.aiInfoCard, { backgroundColor: Brand.accent + '10' }]}>
                     <Sparkles size={20} color={Brand.accent} />
                     <Text style={[styles.aiInfoText, { color: colors.textSecondary }]}>
@@ -555,7 +535,6 @@ const styles = StyleSheet.create({
         fontSize: FontSize.sm,
         lineHeight: 20,
     },
-    // Modal styles
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',

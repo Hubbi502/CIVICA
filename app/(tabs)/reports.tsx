@@ -1,8 +1,3 @@
-/**
- * CIVICA My Reports Screen
- * Shows user's submitted reports with status tracking
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing, StatusColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/stores/authStore';
@@ -22,7 +17,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Mock reports data
 const MOCK_REPORTS: Report[] = [
     {
         id: '1',
@@ -211,7 +205,6 @@ export default function ReportsScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-            {/* Header */}
             <View style={styles.header}>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>Laporan Saya</Text>
             </View>

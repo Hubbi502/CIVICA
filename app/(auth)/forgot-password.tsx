@@ -1,7 +1,3 @@
-/**
- * CIVICA Forgot Password Screen
- */
-
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { auth } from '@/FirebaseConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -65,7 +61,6 @@ export default function ForgotPasswordScreen() {
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* Back Button */}
                 <TouchableOpacity
                     onPress={() => router.back()}
                     style={styles.backButton}
@@ -73,7 +68,6 @@ export default function ForgotPasswordScreen() {
                     <ArrowLeft size={24} color={colors.text} />
                 </TouchableOpacity>
 
-                {/* Logo & Title */}
                 <View style={styles.header}>
                     <View style={[styles.logoContainer, { backgroundColor: Brand.primary }]}>
                         <MapPin size={40} color="#FFFFFF" />
@@ -86,9 +80,7 @@ export default function ForgotPasswordScreen() {
                     </Text>
                 </View>
 
-                {/* Form */}
                 <View style={styles.form}>
-                    {/* Email Input */}
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: colors.text }]}>Email</Text>
                         <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -106,7 +98,6 @@ export default function ForgotPasswordScreen() {
                         </View>
                     </View>
 
-                    {/* Reset Button */}
                     <TouchableOpacity
                         style={[styles.resetButton, isLoading && styles.buttonDisabled]}
                         onPress={handleResetPassword}
@@ -119,7 +110,6 @@ export default function ForgotPasswordScreen() {
                         )}
                     </TouchableOpacity>
 
-                    {/* Back to Login */}
                     <TouchableOpacity
                         onPress={() => router.back()}
                         style={styles.backToLoginButton}

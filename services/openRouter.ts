@@ -1,8 +1,3 @@
-/**
- * DeepSeek AI Service for CIVICA
- * Handles AI classification, chatbot, and interest parsing
- */
-
 import { Personas } from '@/constants/personas';
 import { AIClassification, ChatMessage, PersonaType, PostType, QuickAction, SeverityLevel } from '@/types';
 import { OpenRouter } from '@openrouter/sdk';
@@ -15,9 +10,6 @@ const openrouter = new OpenRouter({
 
 const MODEL = 'xiaomi/mimo-v2-flash:free';
 
-/**
- * Convert image URI to base64 for DeepSeek
- */
 const imageToBase64 = async (uri: string): Promise<string> => {
     const response = await fetch(uri);
     const blob = await response.blob();
@@ -33,9 +25,6 @@ const imageToBase64 = async (uri: string): Promise<string> => {
     });
 };
 
-/**
- * Classify a post using both image and text analysis
- */
 export const classifyPost = async (
     images: string[],
     text: string
@@ -69,12 +58,9 @@ Respond in valid JSON format only:
 }
 `;
 
-        // Build messages array
         const messages: { role: string; content: string }[] = [];
 
-        // Note: OpenRouter free model may not support images, using text-only
         if (images.length > 0) {
-            // For now, we'll note that images were provided in the prompt
             messages.push({
                 role: 'user',
                 content: prompt + '\n\n[User has attached ' + images.length + ' image(s)]'
@@ -91,7 +77,6 @@ Respond in valid JSON format only:
         const content = response.choices?.[0]?.message?.content;
         const responseText = typeof content === 'string' ? content : '';
 
-        // Parse JSON from response
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
             throw new Error('No valid JSON in response');
@@ -110,7 +95,6 @@ Respond in valid JSON format only:
     } catch (error) {
         console.error('AI Classification error:', error);
 
-        // Fallback classification
         return {
             category: 'GENERAL',
             confidence: 0.5,
@@ -120,9 +104,6 @@ Respond in valid JSON format only:
     }
 };
 
-/**
- * Analyze image only (for quick preview)
- */
 export const analyzeImage = async (imageUri: string): Promise<{
     description: string;
     suggestedCategory: PostType;
@@ -176,9 +157,6 @@ Respond in JSON:
     }
 };
 
-/**
- * Parse user interests from free text input
- */
 export const parseInterests = async (text: string): Promise<{
     interests: string[];
     suggestedTags: string[];
@@ -267,7 +245,6 @@ Contoh yang SALAH (jangan seperti ini):
 1. **Kopi Tuku** - *500m*"
 `;
 
-        // Build conversation history for OpenRouter format
         const conversationMessages = [
             { role: 'system', content: systemPrompt },
             ...messages.slice(-10).map((m) => ({
@@ -328,7 +305,6 @@ export const generateQuickActions = (
         },
     ];
 
-    // Add persona-specific actions
     const personaActions: Record<PersonaType, QuickAction[]> = {
         merchant: [
             {

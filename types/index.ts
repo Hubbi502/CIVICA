@@ -1,10 +1,3 @@
-/**
- * CIVICA Core Types
- * TypeScript interfaces for the application
- */
-
-// ============ User Types ============
-
 export type PersonaType = 'merchant' | 'office_worker' | 'resident' | 'student';
 
 export interface UserLocation {
@@ -15,7 +8,7 @@ export interface UserLocation {
 }
 
 export interface UserPreferences {
-    nearbyRadius: number; // in km
+    nearbyRadius: number;
     notifications: {
         reports: boolean;
         news: boolean;
@@ -49,8 +42,6 @@ export interface User {
     updatedAt: Date;
 }
 
-// ============ Post Types ============
-
 export type PostType = 'REPORT' | 'PROMOTION' | 'NEWS' | 'GENERAL';
 export type ReportStatus = 'active' | 'verified' | 'resolved' | 'closed';
 export type SeverityLevel = 'low' | 'medium' | 'high' | 'critical';
@@ -65,7 +56,7 @@ export interface PostLocation {
 
 export interface AIClassification {
     category: PostType;
-    confidence: number; // 0-1
+    confidence: number;
     severity?: SeverityLevel;
     tags: string[];
     keywords: string[];
@@ -108,8 +99,6 @@ export interface Post {
     updatedAt: Date;
 }
 
-// ============ Report Types ============
-
 export interface ReportUpdate {
     id: string;
     authorId: string;
@@ -127,8 +116,6 @@ export interface Report extends Post {
     updates: ReportUpdate[];
     verifiedCount: number;
 }
-
-// ============ Business/Promotion Types ============
 
 export interface BusinessLinks {
     whatsapp?: string;
@@ -153,8 +140,6 @@ export interface Promotion extends Post {
     business: BusinessDetails;
 }
 
-// ============ Comment Types ============
-
 export interface Comment {
     id: string;
     postId: string;
@@ -168,8 +153,6 @@ export interface Comment {
     createdAt: Date;
     updatedAt: Date;
 }
-
-// ============ Chatbot Types ============
 
 export type ChatRole = 'user' | 'assistant';
 
@@ -191,8 +174,6 @@ export interface QuickAction {
     label: string;
     prompt: string;
 }
-
-// ============ Notification Types ============
 
 export type NotificationType =
     | 'upvote'
@@ -221,8 +202,6 @@ export interface Notification {
     createdAt: Date;
 }
 
-// ============ Badge Types ============
-
 export type BadgeRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 export interface Badge {
@@ -240,15 +219,13 @@ export interface UserBadge {
     earnedAt: Date;
 }
 
-// ============ City Stats Types ============
-
 export interface CityStats {
     date: Date;
     newReports: number;
     resolvedIssues: number;
     activeUsers: number;
-    avgResponseTime: number; // in hours
-    healthScore: number; // 0-100
+    avgResponseTime: number;
+    healthScore: number;
 }
 
 export interface LeaderboardEntry {
@@ -260,11 +237,9 @@ export interface LeaderboardEntry {
     rank: number;
 }
 
-// ============ Filter Types ============
-
 export interface FeedFilters {
     type?: PostType | 'all';
-    radius?: number; // km
+    radius?: number;
     sortBy?: 'recent' | 'trending' | 'nearby';
     status?: ReportStatus;
 }

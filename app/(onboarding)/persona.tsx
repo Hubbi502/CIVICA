@@ -1,7 +1,3 @@
-/**
- * Onboarding Step 3: Persona Selection
- */
-
 import { getAllPersonas } from '@/constants/personas';
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -51,12 +47,10 @@ export default function PersonaScreen() {
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={styles.content}
         >
-            {/* Back Button */}
             <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                 <ArrowLeft size={24} color={colors.text} />
             </TouchableOpacity>
 
-            {/* Header */}
             <View style={styles.header}>
                 <Text style={[styles.title, { color: colors.text }]}>Siapa Anda?</Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -64,7 +58,6 @@ export default function PersonaScreen() {
                 </Text>
             </View>
 
-            {/* Persona Cards */}
             <View style={styles.cardsContainer}>
                 {personas.map((persona) => {
                     const Icon = PERSONA_ICONS[persona.id];
@@ -104,7 +97,6 @@ export default function PersonaScreen() {
                 })}
             </View>
 
-            {/* Continue Button */}
             <TouchableOpacity
                 style={[
                     styles.continueButton,
