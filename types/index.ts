@@ -80,6 +80,7 @@ export interface PostMedia {
 
 export interface PostEngagement {
     upvotes: number;
+    downvotes: number;
     comments: number;
     shares: number;
     watchers: number;
@@ -102,6 +103,7 @@ export interface Post {
 
     engagement: PostEngagement;
     upvotedBy: string[];
+    downvotedBy: string[];
     watchedBy: string[];
 
     createdAt: Date;
