@@ -1,10 +1,11 @@
+import LocationSelector from '@/components/LocationSelector';
 import { Brand, CategoryColors, Colors, FontSize, FontWeight, Radius, SeverityColors, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { classifyPost } from '@/services/openRouter';
 import { createPost } from '@/services/posts';
 import { uploadImages } from '@/services/storage';
 import { useAuthStore } from '@/stores/authStore';
-import { AIClassification, PostType } from '@/types';
+import { AIClassification, PostLocation, PostType } from '@/types';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import {
@@ -56,6 +57,7 @@ export default function CreatePostScreen() {
     const [showClassificationModal, setShowClassificationModal] = useState(false);
     const [classification, setClassification] = useState<AIClassification | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [location, setLocation] = useState<PostLocation | null>(null);
 
     const canSubmit = content.trim().length > 0 || images.length > 0;
 
@@ -125,6 +127,15 @@ export default function CreatePostScreen() {
                 mediaUrls = await uploadImages(images, `posts/${user.id}`);
             }
 
+            // Use selected location if available, otherwise fallback to user's registered location
+            const finalLocation = location || {
+                address: '',
+                city: user.location?.city || 'Jakarta',
+                district: user.location?.district || '',
+                latitude: user.location?.latitude || 0,
+                longitude: user.location?.longitude || 0,
+            };
+
             await createPost({
                 authorId: user.id,
                 authorName: user.displayName || 'User',
@@ -132,13 +143,7 @@ export default function CreatePostScreen() {
                 isAnonymous,
                 content: content.trim(),
                 mediaUrls,
-                location: {
-                    address: '',
-                    city: user.location?.city || 'Jakarta',
-                    district: user.location?.district || '',
-                    latitude: user.location?.latitude || 0,
-                    longitude: user.location?.longitude || 0,
-                },
+                location: finalLocation,
                 classification,
             });
 
@@ -334,6 +339,8 @@ export default function CreatePostScreen() {
                     maxLength={500}
                     textAlignVertical="top"
                 />
+
+                <LocationSelector onLocationSelect={setLocation} />
 
                 <Text style={[styles.charCount, { color: colors.textMuted }]}>
                     {content.length}/500
