@@ -73,15 +73,25 @@ export const getPosts = async (
 
 export const getPostsByUser = async (userId: string): Promise<Post[]> => {
     try {
+        console.log('[getPostsByUser] Fetching posts for userId:', userId);
+        // Note: Removed orderBy to avoid composite index requirement
+        // Sorting is done in JavaScript after fetching
         const q = query(
             collection(db, POSTS_COLLECTION),
-            where('authorId', '==', userId),
-            orderBy('createdAt', 'desc')
+            where('authorId', '==', userId)
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(docToPost);
+        console.log('[getPostsByUser] Found', snapshot.docs.length, 'posts');
+        const posts = snapshot.docs.map(docToPost);
+        // Sort by createdAt descending in JavaScript
+        return posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     } catch (error) {
         console.error('Error getting user posts:', error);
+        // Log more details about the error
+        if (error instanceof Error) {
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+        }
         return [];
     }
 };

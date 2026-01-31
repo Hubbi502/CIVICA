@@ -10,13 +10,15 @@ import {
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTranslation } from "@/hooks/useTranslation";
+import { getPostsByUser } from "@/services/posts";
 import { useAuthStore } from "@/stores/authStore";
 import { useLanguageStore } from "@/stores/languageStore";
-import { Report, ReportStatus } from "@/types";
+import { Post, PostType, ReportStatus } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 import { enUS, id as idLocale } from "date-fns/locale";
 import { router } from "expo-router";
 import {
+  AlertTriangle,
   CheckCheck,
   CheckCircle,
   ChevronRight,
@@ -24,138 +26,25 @@ import {
   Eye,
   FileText,
   MessageCircle,
+  Newspaper,
   Plus,
+  ShoppingBag,
+  Sparkles,
   ThumbsUp,
   XCircle,
 } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const MOCK_REPORTS: Report[] = [
-  {
-    id: "1",
-    authorId: "current_user",
-    authorName: "Anda",
-    isAnonymous: false,
-    content:
-      "Ada lubang besar di Jl. Sudirman depan Gedung A. Sudah beberapa hari dan cukup berbahaya untuk pengendara motor.",
-    media: [
-      { url: "https://picsum.photos/seed/myreport1/400/300", type: "image" },
-    ],
-    location: {
-      address: "Jl. Sudirman No. 10",
-      city: "Jakarta",
-      district: "Menteng",
-      latitude: -6.2,
-      longitude: 106.8,
-    },
-    type: "REPORT",
-    classification: {
-      category: "REPORT",
-      confidence: 0.95,
-      severity: "high",
-      tags: ["jalan", "lubang"],
-      keywords: [],
-    },
-    engagement: {
-      upvotes: 45,
-      comments: 12,
-      shares: 5,
-      watchers: 28,
-      views: 230,
-    },
-    upvotedBy: [],
-    watchedBy: [],
-    status: "verified",
-    severity: "high",
-    updates: [],
-    verifiedCount: 15,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(),
-  },
-  {
-    id: "2",
-    authorId: "current_user",
-    authorName: "Anda",
-    isAnonymous: false,
-    content:
-      "Lampu jalan di depan gang rusak dan mati. Malam hari sangat gelap.",
-    media: [
-      { url: "https://picsum.photos/seed/myreport2/400/300", type: "image" },
-    ],
-    location: {
-      address: "Jl. Kebon Jeruk",
-      city: "Jakarta",
-      district: "Kemang",
-      latitude: -6.25,
-      longitude: 106.81,
-    },
-    type: "REPORT",
-    classification: {
-      category: "REPORT",
-      confidence: 0.91,
-      severity: "medium",
-      tags: ["lampu", "penerangan"],
-      keywords: [],
-    },
-    engagement: {
-      upvotes: 23,
-      comments: 5,
-      shares: 2,
-      watchers: 10,
-      views: 120,
-    },
-    upvotedBy: [],
-    watchedBy: [],
-    status: "active",
-    severity: "medium",
-    updates: [],
-    verifiedCount: 8,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(),
-  },
-  {
-    id: "3",
-    authorId: "current_user",
-    authorName: "Anda",
-    isAnonymous: false,
-    content:
-      "Sampah menumpuk di tempat sampah umum sudah lebih dari seminggu tidak diangkut.",
-    media: [],
-    location: {
-      address: "Jl. Gatot Subroto",
-      city: "Jakarta",
-      district: "Kuningan",
-      latitude: -6.22,
-      longitude: 106.83,
-    },
-    type: "REPORT",
-    classification: {
-      category: "REPORT",
-      confidence: 0.88,
-      severity: "low",
-      tags: ["sampah", "kebersihan"],
-      keywords: [],
-    },
-    engagement: { upvotes: 12, comments: 3, shares: 1, watchers: 5, views: 80 },
-    upvotedBy: [],
-    watchedBy: [],
-    status: "resolved",
-    severity: "low",
-    updates: [],
-    verifiedCount: 5,
-    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(),
-  },
-];
 
 const STATUS_CONFIG: Record<
   ReportStatus,
@@ -175,6 +64,16 @@ const STATUS_CONFIG: Record<
   closed: { icon: XCircle, label: "Ditutup", color: StatusColors.closed },
 };
 
+const TYPE_CONFIG: Record<
+  PostType,
+  { icon: React.ComponentType<any>; label: string; color: string }
+> = {
+  REPORT: { icon: AlertTriangle, label: "Laporan", color: "#EF4444" },
+  PROMOTION: { icon: ShoppingBag, label: "Promosi", color: "#8B5CF6" },
+  NEWS: { icon: Newspaper, label: "Berita", color: "#3B82F6" },
+  GENERAL: { icon: Sparkles, label: "Umum", color: "#10B981" },
+};
+
 export default function ReportsScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
@@ -182,21 +81,50 @@ export default function ReportsScreen() {
   const { t } = useTranslation();
   const { language } = useLanguageStore();
 
-  const [reports] = useState<Report[]>(MOCK_REPORTS);
-  const [selectedStatus, setSelectedStatus] = useState<ReportStatus | "all">(
-    "all",
-  );
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedType, setSelectedType] = useState<PostType | "all">("all");
 
-  const filteredReports =
-    selectedStatus === "all"
-      ? reports
-      : reports.filter((r) => r.status === selectedStatus);
+  const fetchPosts = useCallback(async () => {
+    if (!user?.id) {
+      setPosts([]);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const userPosts = await getPostsByUser(user.id);
+      setPosts(userPosts);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      setPosts([]);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const filteredPosts =
+    selectedType === "all"
+      ? posts
+      : posts.filter((p) => p.type === selectedType);
 
   const stats = {
-    total: reports.length,
-    active: reports.filter((r) => r.status === "active").length,
-    verified: reports.filter((r) => r.status === "verified").length,
-    resolved: reports.filter((r) => r.status === "resolved").length,
+    total: posts.length,
+    reports: posts.filter((p) => p.type === "REPORT").length,
+    promotions: posts.filter((p) => p.type === "PROMOTION").length,
+    news: posts.filter((p) => p.type === "NEWS").length,
+    general: posts.filter((p) => p.type === "GENERAL").length,
   };
 
   const renderStatsCards = () => (
@@ -210,40 +138,40 @@ export default function ReportsScreen() {
         </Text>
       </View>
       <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.statNumber, { color: StatusColors.active }]}>
-          {stats.active}
+        <Text style={[styles.statNumber, { color: TYPE_CONFIG.REPORT.color }]}>
+          {stats.reports}
         </Text>
         <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-          {t("active")}
+          {TYPE_CONFIG.REPORT.label}
         </Text>
       </View>
       <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.statNumber, { color: StatusColors.verified }]}>
-          {stats.verified}
+        <Text style={[styles.statNumber, { color: TYPE_CONFIG.GENERAL.color }]}>
+          {stats.general}
         </Text>
         <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-          {t("verifiedStatus")}
+          {TYPE_CONFIG.GENERAL.label}
         </Text>
       </View>
       <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.statNumber, { color: StatusColors.resolved }]}>
-          {stats.resolved}
+        <Text style={[styles.statNumber, { color: TYPE_CONFIG.NEWS.color }]}>
+          {stats.news}
         </Text>
         <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-          {t("resolvedStatus")}
+          {TYPE_CONFIG.NEWS.label}
         </Text>
       </View>
     </View>
   );
 
-  const renderReportCard = ({ item }: { item: Report }) => {
-    const statusConfig = STATUS_CONFIG[item.status];
-    const StatusIcon = statusConfig.icon;
+  const renderPostCard = ({ item }: { item: Post }) => {
+    const typeConfig = TYPE_CONFIG[item.type] || TYPE_CONFIG.GENERAL;
+    const TypeIcon = typeConfig.icon;
 
     return (
       <TouchableOpacity
         style={[styles.reportCard, { backgroundColor: colors.surface }]}
-        onPress={() => router.push(`/post/${item.id}`)}
+        onPress={() => router.push({ pathname: '/report/[id]', params: { id: item.id } })}
         activeOpacity={0.7}
       >
         <View style={styles.reportCardContent}>
@@ -279,14 +207,14 @@ export default function ReportsScreen() {
               <View
                 style={[
                   styles.statusBadge,
-                  { backgroundColor: statusConfig.color + "15" },
+                  { backgroundColor: typeConfig.color + "15" },
                 ]}
               >
-                <StatusIcon size={12} color={statusConfig.color} />
+                <TypeIcon size={12} color={typeConfig.color} />
                 <Text
-                  style={[styles.statusText, { color: statusConfig.color }]}
+                  style={[styles.statusText, { color: typeConfig.color }]}
                 >
-                  {statusConfig.label}
+                  {typeConfig.label}
                 </Text>
               </View>
               <Text style={[styles.reportTime, { color: colors.textMuted }]}>
@@ -325,7 +253,7 @@ export default function ReportsScreen() {
             <Text
               style={[styles.reportStatText, { color: colors.textSecondary }]}
             >
-              {item.engagement.watchers} {t("following")}
+              {item.engagement.views} {t("views")}
             </Text>
           </View>
         </View>
@@ -352,6 +280,24 @@ export default function ReportsScreen() {
     </View>
   );
 
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={["top"]}
+      >
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            {t("myReports")}
+          </Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Brand.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -366,12 +312,20 @@ export default function ReportsScreen() {
       {renderStatsCards()}
 
       <FlatList
-        data={filteredReports}
+        data={filteredPosts}
         keyExtractor={(item) => item.id}
-        renderItem={renderReportCard}
+        renderItem={renderPostCard}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[Brand.primary]}
+            tintColor={Brand.primary}
+          />
+        }
       />
     </SafeAreaView>
   );
@@ -518,5 +472,10 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
