@@ -387,24 +387,55 @@ export const toggleWatch = async (
 };
 
 /**
- * Add update to a report
+ * Add update to a report with auto-verification when threshold is reached
+ * @param postId - The post ID to add update to
+ * @param update - The update content (without id and createdAt)
+ * @param autoVerifyThreshold - Number of updates needed to auto-verify (default: 3)
  */
 export const addReportUpdate = async (
     postId: string,
-    update: Omit<ReportUpdate, 'id' | 'createdAt'>
-): Promise<void> => {
+    update: Omit<ReportUpdate, 'id' | 'createdAt'>,
+    autoVerifyThreshold: number = 3
+): Promise<{ isVerified: boolean; updateCount: number }> => {
     try {
         const docRef = doc(db, POSTS_COLLECTION, postId);
+
+        // Get current post to check updates count
+        const postSnap = await getDoc(docRef);
+        if (!postSnap.exists()) {
+            throw new Error('Post not found');
+        }
+
+        const postData = postSnap.data();
+        const currentUpdates = postData?.updates || [];
+        const newUpdateCount = currentUpdates.length + 1;
+
+        // Clean undefined values from update object (Firebase doesn't accept undefined)
+        const cleanedUpdate = removeUndefined(update);
         const newUpdate = {
-            ...update,
+            ...cleanedUpdate,
             id: Date.now().toString(),
             createdAt: Timestamp.now(),
         };
 
-        await updateDoc(docRef, {
+        const updateData: any = {
             updates: arrayUnion(newUpdate),
             updatedAt: serverTimestamp(),
-        });
+            verifiedCount: increment(1),
+        };
+
+        // Auto-verify if threshold reached and not already verified
+        const shouldVerify = newUpdateCount >= autoVerifyThreshold && postData.status !== 'verified';
+        if (shouldVerify) {
+            updateData.status = 'verified';
+        }
+
+        await updateDoc(docRef, updateData);
+
+        return {
+            isVerified: shouldVerify || postData.status === 'verified',
+            updateCount: newUpdateCount,
+        };
     } catch (error) {
         console.error('Error adding report update:', error);
         throw error;
