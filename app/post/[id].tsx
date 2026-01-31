@@ -1,15 +1,17 @@
 import { Brand, Colors, FontSize, FontWeight, Radius, SeverityColors, Spacing } from '@/constants/theme';
 import { db } from '@/FirebaseConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { deletePost } from '@/services/posts';
+import { addComment, deleteComment, getComments } from '@/services/comments';
+import { deletePost, toggleDownvote, toggleUpvote, toggleWatch } from '@/services/posts';
 import { useAuthStore } from '@/stores/authStore';
-import { Post } from '@/types';
+import { Comment, Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { router, useLocalSearchParams } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import {
     AlertTriangle,
+    ArrowDown,
     ArrowLeft,
     ArrowUp,
     Bookmark,
@@ -18,12 +20,14 @@ import {
     Clock,
     Edit2,
     Eye,
+    Heart,
     MapPin,
     MessageCircle,
     MoreVertical,
+    Send,
     Share2,
     Trash2,
-    X,
+    X
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
@@ -35,8 +39,9 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -62,11 +67,18 @@ export default function PostDetailScreen() {
     const [post, setPost] = useState<PostDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isUpvoted, setIsUpvoted] = useState(false);
+    const [isDownvoted, setIsDownvoted] = useState(false);
     const [isWatching, setIsWatching] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showOptionsModal, setShowOptionsModal] = useState(false);
+
+    // Comments state
+    const [comments, setComments] = useState<Comment[]>([]);
+    const [newComment, setNewComment] = useState('');
+    const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+    const [showComments, setShowComments] = useState(false);
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -79,7 +91,7 @@ export default function PostDetailScreen() {
 
                 if (postSnap.exists()) {
                     const data = postSnap.data();
-                    setPost({
+                    const postData = {
                         id: postSnap.id,
                         authorId: data.authorId,
                         authorName: data.authorName,
@@ -90,8 +102,9 @@ export default function PostDetailScreen() {
                         location: data.location || { district: '', city: '', address: '' },
                         type: data.type,
                         classification: data.classification,
-                        engagement: data.engagement || { upvotes: 0, comments: 0, shares: 0, watchers: 0, views: 0 },
+                        engagement: data.engagement || { upvotes: 0, downvotes: 0, comments: 0, shares: 0, watchers: 0, views: 0 },
                         upvotedBy: data.upvotedBy || [],
+                        downvotedBy: data.downvotedBy || [],
                         watchedBy: data.watchedBy || [],
                         createdAt: data.createdAt?.toDate() || new Date(),
                         updatedAt: data.updatedAt?.toDate() || new Date(),
@@ -102,7 +115,20 @@ export default function PostDetailScreen() {
                             createdAt: u.createdAt?.toDate() || new Date(),
                         })),
                         verifiedCount: data.verifiedCount || 0,
-                    } as PostDetail);
+                    } as PostDetail;
+
+                    setPost(postData);
+
+                    // Set initial vote/watch states based on current user
+                    if (user?.id) {
+                        setIsUpvoted(postData.upvotedBy.includes(user.id));
+                        setIsDownvoted(postData.downvotedBy?.includes(user.id) || false);
+                        setIsWatching(postData.watchedBy.includes(user.id));
+                    }
+
+                    // Fetch comments
+                    const fetchedComments = await getComments(postId);
+                    setComments(fetchedComments);
                 }
             } catch (error) {
                 console.error('Error fetching post:', error);
@@ -112,7 +138,7 @@ export default function PostDetailScreen() {
         };
 
         fetchPost();
-    }, [postId]);
+    }, [postId, user?.id]);
 
     const performDelete = async () => {
         try {
@@ -136,6 +162,113 @@ export default function PostDetailScreen() {
 
     const handleOptions = () => {
         setShowOptionsModal(true);
+    };
+
+    const handleUpvote = async () => {
+        if (!user?.id || !postId) return;
+        try {
+            const nowUpvoted = await toggleUpvote(postId, user.id);
+            setIsUpvoted(nowUpvoted);
+            if (nowUpvoted) setIsDownvoted(false); // Mutually exclusive
+            // Update local engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    upvotes: nowUpvoted ? prev.engagement.upvotes + 1 : prev.engagement.upvotes - 1,
+                    downvotes: nowUpvoted && isDownvoted ? prev.engagement.downvotes - 1 : prev.engagement.downvotes,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error toggling upvote:', error);
+        }
+    };
+
+    const handleDownvote = async () => {
+        if (!user?.id || !postId) return;
+        try {
+            const nowDownvoted = await toggleDownvote(postId, user.id);
+            setIsDownvoted(nowDownvoted);
+            if (nowDownvoted) setIsUpvoted(false); // Mutually exclusive
+            // Update local engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    downvotes: nowDownvoted ? (prev.engagement.downvotes || 0) + 1 : (prev.engagement.downvotes || 0) - 1,
+                    upvotes: nowDownvoted && isUpvoted ? prev.engagement.upvotes - 1 : prev.engagement.upvotes,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error toggling downvote:', error);
+        }
+    };
+
+    const handleWatch = async () => {
+        if (!user?.id || !postId) return;
+        try {
+            const nowWatching = await toggleWatch(postId, user.id);
+            setIsWatching(nowWatching);
+            // Update local engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    watchers: nowWatching ? prev.engagement.watchers + 1 : prev.engagement.watchers - 1,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error toggling watch:', error);
+        }
+    };
+
+    const handleAddComment = async () => {
+        if (!user?.id || !postId || !newComment.trim()) return;
+        try {
+            setIsSubmittingComment(true);
+            await addComment(
+                postId,
+                user.id,
+                user.displayName || 'User',
+                user.avatarUrl,
+                newComment.trim()
+            );
+            setNewComment('');
+            // Refresh comments
+            const fetchedComments = await getComments(postId);
+            setComments(fetchedComments);
+            // Update engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    comments: prev.engagement.comments + 1,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            Alert.alert('Error', 'Gagal menambahkan komentar');
+        } finally {
+            setIsSubmittingComment(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+        if (!postId) return;
+        try {
+            await deleteComment(commentId, postId);
+            setComments(prev => prev.filter(c => c.id !== commentId));
+            // Update engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    comments: prev.engagement.comments - 1,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+        }
     };
 
     const renderDeleteModal = () => {
@@ -434,56 +567,78 @@ export default function PostDetailScreen() {
                                 </View>
                             </View>
 
-                            {(post.updates || []).map((update) => (
-                                <View key={update.id} style={styles.timelineItem}>
-                                    <View style={[styles.timelineDot, { backgroundColor: Brand.success }]} />
-                                    <View style={[styles.updateCard, { backgroundColor: colors.surfaceSecondary }]}>
-                                        <Text style={[styles.updateAuthor, { color: colors.text }]}>
-                                            {update.authorName}
-                                        </Text>
-                                        <Text style={[styles.updateContent, { color: colors.textSecondary }]}>
-                                            {update.content}
-                                        </Text>
-                                        {update.media && (
-                                            <Image source={{ uri: update.media[0].url }} style={styles.updateImage} />
-                                        )}
-                                        <Text style={[styles.updateTime, { color: colors.textMuted }]}>
-                                            {formatDistanceToNow(update.createdAt, { addSuffix: true, locale: id })}
-                                        </Text>
-                                    </View>
+                        {(post.updates || []).map((update) => (
+                            <View key={update.id} style={styles.timelineItem}>
+                                <View style={[styles.timelineDot, { backgroundColor: Brand.success }]} />
+                                <View style={[styles.updateCard, { backgroundColor: colors.surfaceSecondary }]}>
+                                    <Text style={[styles.updateAuthor, { color: colors.text }]}>
+                                        {update.authorName}
+                                    </Text>
+                                    <Text style={[styles.updateContent, { color: colors.textSecondary }]}>
+                                        {update.content}
+                                    </Text>
+                                    {update.media && (
+                                        <Image source={{ uri: update.media[0].url }} style={styles.updateImage} />
+                                    )}
+                                    <Text style={[styles.updateTime, { color: colors.textMuted }]}>
+                                        {formatDistanceToNow(update.createdAt, { addSuffix: true, locale: id })}
+                                    </Text>
                                 </View>
-                            ))}
-                        </View>
+                            </View>
+                        ))}
                     </View>
-                )}
+                </View>
             </ScrollView>
 
             <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+                {/* Upvote Button */}
                 <TouchableOpacity
-                    style={[styles.actionButton, isUpvoted && { backgroundColor: Brand.primary + '15' }]}
-                    onPress={() => setIsUpvoted(!isUpvoted)}
+                    style={[styles.voteButton, isUpvoted && { backgroundColor: Brand.primary + '15' }]}
+                    onPress={handleUpvote}
                 >
                     <ArrowUp
                         size={20}
                         color={isUpvoted ? Brand.primary : colors.text}
                         fill={isUpvoted ? Brand.primary : 'transparent'}
                     />
-                    <Text style={[styles.actionButtonText, isUpvoted && { color: Brand.primary }]}>
-                        Upvote
+                    <Text style={[styles.voteText, { color: isUpvoted ? Brand.primary : colors.text }]}>
+                        {post.engagement.upvotes}
                     </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionButton}>
-                    <MessageCircle size={20} color={colors.text} />
-                    <Text style={styles.actionButtonText}>Komentar</Text>
+                {/* Downvote Button */}
+                <TouchableOpacity
+                    style={[styles.voteButton, isDownvoted && { backgroundColor: Brand.error + '15' }]}
+                    onPress={handleDownvote}
+                >
+                    <ArrowDown
+                        size={20}
+                        color={isDownvoted ? Brand.error : colors.text}
+                        fill={isDownvoted ? Brand.error : 'transparent'}
+                    />
+                    <Text style={[styles.voteText, { color: isDownvoted ? Brand.error : colors.text }]}>
+                        {post.engagement.downvotes || 0}
+                    </Text>
                 </TouchableOpacity>
 
+                {/* Comment Button */}
+                <TouchableOpacity
+                    style={[styles.actionButton, showComments && { backgroundColor: Brand.primary + '15' }]}
+                    onPress={() => setShowComments(!showComments)}
+                >
+                    <MessageCircle size={20} color={showComments ? Brand.primary : colors.text} />
+                    <Text style={[styles.actionButtonText, { color: showComments ? Brand.primary : colors.text }]}>
+                        {post.engagement.comments}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Watch Button */}
                 <TouchableOpacity
                     style={[styles.watchButton, isWatching && { backgroundColor: Brand.success }]}
-                    onPress={() => setIsWatching(!isWatching)}
+                    onPress={handleWatch}
                 >
                     <Eye size={18} color={isWatching ? '#FFFFFF' : Brand.success} />
-                    <Text style={[styles.watchButtonText, isWatching && { color: '#FFFFFF' }]}>
+                    <Text style={[styles.watchButtonText, { color: isWatching ? '#FFFFFF' : Brand.success }]}>
                         {isWatching ? 'Mengikuti' : 'Ikuti'}
                     </Text>
                 </TouchableOpacity>
@@ -860,5 +1015,105 @@ const styles = StyleSheet.create({
     closeButtonText: {
         fontSize: FontSize.md,
         fontWeight: FontWeight.bold,
+    },
+    // Vote buttons
+    voteButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: Radius.lg,
+        gap: 4,
+    },
+    voteText: {
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.semibold,
+    },
+    // Comments
+    noCommentsText: {
+        textAlign: 'center',
+        fontSize: FontSize.sm,
+        paddingVertical: Spacing.lg,
+    },
+    commentItem: {
+        flexDirection: 'row',
+        paddingVertical: Spacing.md,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        gap: Spacing.sm,
+    },
+    commentAvatar: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    commentAvatarText: {
+        color: '#FFFFFF',
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.bold,
+    },
+    commentContent: {
+        flex: 1,
+    },
+    commentHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginBottom: 4,
+    },
+    commentAuthor: {
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.semibold,
+    },
+    commentTime: {
+        fontSize: FontSize.xs,
+    },
+    commentText: {
+        fontSize: FontSize.sm,
+        lineHeight: 20,
+    },
+    commentActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.md,
+        marginTop: Spacing.xs,
+    },
+    commentLikeBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    commentLikeCount: {
+        fontSize: FontSize.xs,
+    },
+    commentInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: Spacing.sm,
+        paddingTop: Spacing.md,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        marginTop: Spacing.sm,
+    },
+    commentInput: {
+        flex: 1,
+        minHeight: 40,
+        maxHeight: 100,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: Radius.lg,
+        fontSize: FontSize.sm,
+    },
+    sendButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Brand.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sendButtonDisabled: {
+        opacity: 0.5,
     },
 });
