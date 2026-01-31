@@ -2,7 +2,7 @@ import { Brand, Colors, FontSize, FontWeight, Radius, Spacing } from '@/constant
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from '@/hooks/useTranslation';
 import { FeedFilters } from '@/types';
-import { AlertTriangle, Filter, MapPin, Newspaper, ShoppingBag, TrendingUp } from 'lucide-react-native';
+import { AlertTriangle, Filter, MapPin, MessageCircle, Newspaper, TrendingUp } from 'lucide-react-native';
 import React, { memo, useCallback, useRef } from 'react';
 import {
     ScrollView,
@@ -56,10 +56,10 @@ const FILTER_OPTIONS: FilterOption[] = [
         value: { type: 'NEWS' },
     },
     {
-        id: 'promotions',
-        labelKey: 'promotions',
-        icon: ShoppingBag,
-        value: { type: 'PROMOTION' },
+        id: 'general',
+        labelKey: 'general',
+        icon: MessageCircle,
+        value: { type: 'GENERAL' },
     },
 ];
 

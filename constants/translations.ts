@@ -29,6 +29,7 @@ export const translations: Record<Language, Record<string, string>> = {
     reports: "Laporan",
     news: "Berita",
     promotions: "Promo",
+    general: "Umum",
 
     // Home screen
     hello: "Halo",
@@ -207,6 +208,7 @@ export const translations: Record<Language, Record<string, string>> = {
     reports: "Reports",
     news: "News",
     promotions: "Promos",
+    general: "General",
 
     // Home screen
     hello: "Hello",

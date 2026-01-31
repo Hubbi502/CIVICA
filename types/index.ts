@@ -42,7 +42,15 @@ export interface User {
     updatedAt: Date;
 }
 
-export type PostType = 'REPORT' | 'PROMOTION' | 'NEWS' | 'GENERAL';
+export type PostType = 'GENERAL' | 'NEWS' | 'REPORT';
+export type GeneralSubCategory =
+    | 'PROMOTION'      // Promosi
+    | 'SPORTS'         // Olahraga
+    | 'TECHNOLOGY'     // Teknologi
+    | 'ENTERTAINMENT'  // Hiburan
+    | 'REAL_STORY'     // Kisah Nyata
+    | 'FICTION'        // Kisah Fiksi
+    | 'OTHER';         // Lainnya
 export type ReportStatus = 'active' | 'verified' | 'resolved' | 'closed';
 export type SeverityLevel = 'low' | 'medium' | 'high' | 'critical';
 
@@ -56,6 +64,7 @@ export interface PostLocation {
 
 export interface AIClassification {
     category: PostType;
+    subCategory?: GeneralSubCategory; // Only for GENERAL category
     confidence: number;
     severity?: SeverityLevel;
     tags: string[];
@@ -135,10 +144,8 @@ export interface BusinessDetails {
     products?: string[];
 }
 
-export interface Promotion extends Post {
-    type: 'PROMOTION';
-    business: BusinessDetails;
-}
+// Note: Promotion is now a subCategory of GENERAL posts, not a separate type
+// Business details can be attached to any GENERAL post with subCategory: 'PROMOTION'
 
 export interface Comment {
     id: string;

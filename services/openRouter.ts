@@ -1,5 +1,5 @@
 import { Personas } from '@/constants/personas';
-import { AIClassification, ChatMessage, PersonaType, PostType, QuickAction, SeverityLevel } from '@/types';
+import { AIClassification, ChatMessage, GeneralSubCategory, PersonaType, PostType, QuickAction, SeverityLevel } from '@/types';
 import { OpenRouter } from '@openrouter/sdk';
 
 const openrouter = new OpenRouter({
@@ -33,11 +33,18 @@ Analyze this social media post for a civic engagement app in Indonesia.
 
 Post Text: "${text}"
 
-Based on the text${images.length > 0 ? ' and attached image(s)' : ''}, classify this post into ONE of these categories:
-1. REPORT - Infrastructure issues (potholes, flooding, broken lights), safety concerns, public facility problems
-2. PROMOTION - Business promotions, product offerings, services, local shops/restaurants
-3. NEWS - Local news, announcements, events, community information
-4. GENERAL - Casual posts that don't fit above categories
+Based on the text${images.length > 0 ? ' and attached image(s)' : ''}, classify this post into ONE of these main categories:
+
+1. REPORT - Infrastructure issues (potholes, flooding, broken lights), safety concerns, public facility problems (requires severity assessment)
+2. NEWS - Local news, official announcements, events, community information
+3. GENERAL - Other content including:
+   - PROMOTION: Business promotions, product offerings, services, local shops/restaurants
+   - SPORTS: Sports-related content, activities, sports news
+   - TECHNOLOGY: Technology discussions, gadgets, apps, tech news
+   - ENTERTAINMENT: Entertainment, movies, music, games, hobbies
+   - REAL_STORY: True stories, personal experiences, testimonials
+   - FICTION: Fiction stories, creative writing, poetry
+   - OTHER: Content that doesn't fit above sub-categories
 
 Also analyze:
 - Confidence score (0-1)
@@ -47,17 +54,20 @@ Also analyze:
 
 Respond in valid JSON format only:
 {
-  "category": "REPORT" | "PROMOTION" | "NEWS" | "GENERAL",
+  "category": "REPORT" | "NEWS" | "GENERAL",
+  "subCategory": "PROMOTION" | "SPORTS" | "TECHNOLOGY" | "ENTERTAINMENT" | "REAL_STORY" | "FICTION" | "OTHER" | null,
   "confidence": 0.0-1.0,
   "severity": "low" | "medium" | "high" | "critical" | null,
   "tags": ["tag1", "tag2"],
   "keywords": ["keyword1", "keyword2"],
   "sentiment": "positive" | "neutral" | "negative"
 }
+
+Note: subCategory is only applicable when category is GENERAL. severity is only applicable for REPORT.
 `;
 
         // Build multimodal content array
-        const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+        const messageContent: Array<{ type: string; text?: string; imageUrl?: { url: string } }> = [
             { type: 'text', text: prompt }
         ];
 
@@ -67,7 +77,7 @@ Respond in valid JSON format only:
                 const base64Image = await imageToBase64(imageUri);
                 messageContent.push({
                     type: 'image_url',
-                    image_url: { url: base64Image }
+                    imageUrl: { url: base64Image }
                 });
             }
         }
@@ -94,6 +104,7 @@ Respond in valid JSON format only:
 
         return {
             category: parsed.category as PostType,
+            subCategory: parsed.category === 'GENERAL' ? (parsed.subCategory as GeneralSubCategory | undefined) : undefined,
             confidence: parsed.confidence,
             severity: parsed.severity as SeverityLevel | undefined,
             tags: parsed.tags || [],
@@ -105,6 +116,7 @@ Respond in valid JSON format only:
 
         return {
             category: 'GENERAL',
+            subCategory: 'OTHER',
             confidence: 0.5,
             tags: [],
             keywords: [],
@@ -123,15 +135,14 @@ export const analyzeImage = async (imageUri: string): Promise<{
         const prompt = `
 Analyze this image from a civic engagement app in Indonesia.
 Describe what you see briefly and suggest if this might be:
-- Infrastructure issue (pothole, damage, flooding, etc.)
-- Business/product
-- News/event
-- General content
+- REPORT: Infrastructure issue (pothole, damage, flooding, etc.)
+- NEWS: News/event related content
+- GENERAL: Other content (business/product, casual posts, etc.)
 
 Respond in JSON:
 {
   "description": "Brief description",
-  "suggestedCategory": "REPORT" | "PROMOTION" | "NEWS" | "GENERAL",
+  "suggestedCategory": "REPORT" | "NEWS" | "GENERAL",
   "detectedObjects": ["object1", "object2"]
 }
 `;
@@ -148,7 +159,7 @@ Respond in JSON:
                         },
                         {
                             type: 'image_url',
-                            image_url: { url: base64Image }
+                            imageUrl: { url: base64Image }
                         }
                     ]
                 },
