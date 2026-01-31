@@ -10,11 +10,14 @@ import {
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTranslation } from "@/hooks/useTranslation";
+import { uploadAvatar } from "@/services/storage";
 import { useAuthStore } from "@/stores/authStore";
+import * as ImagePicker from 'expo-image-picker';
 import { router } from "expo-router";
 import {
   Award,
   Bell,
+  Camera,
   CheckCircle,
   ChevronRight,
   FileText,
@@ -32,14 +35,16 @@ import {
   ThumbsUp,
   Trophy,
 } from "lucide-react-native";
-import React from "react";
+import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -74,8 +79,9 @@ const LEVEL_REQUIREMENTS = {
 export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const { user, signOut } = useAuthStore();
+  const { user, signOut, updateProfile } = useAuthStore();
   const { t } = useTranslation();
+  const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
 
   const stats = user?.stats || {
     totalReports: 12,
@@ -94,6 +100,38 @@ export default function ProfileScreen() {
       await signOut();
     } catch (error) {
       console.error("Sign out error:", error);
+    }
+  };
+
+  const handleEditAvatar = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets[0].uri) {
+        setIsUpdatingAvatar(true);
+        try {
+          // Upload to storage
+          const downloadUrl = await uploadAvatar(result.assets[0].uri, user?.id || 'unknown');
+
+          // Update user profile
+          await updateProfile({ avatarUrl: downloadUrl });
+
+          Alert.alert(t('success'), t('profileUpdated'));
+        } catch (error) {
+          console.error("Error updating avatar:", error);
+          Alert.alert(t('error'), t('failedToUpdateProfile'));
+        } finally {
+          setIsUpdatingAvatar(false);
+        }
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert(t('error'), t('failedToPickImage'));
     }
   };
 
@@ -153,6 +191,22 @@ export default function ProfileScreen() {
                   {user?.displayName?.charAt(0).toUpperCase() || "U"}
                 </Text>
               )}
+
+              {/* Loading overlay */}
+              {isUpdatingAvatar && (
+                <View style={[styles.loadingOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                </View>
+              )}
+
+              {/* Edit button */}
+              <TouchableOpacity
+                style={[styles.editAvatarButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={handleEditAvatar}
+                disabled={isUpdatingAvatar}
+              >
+                <Camera size={14} color={colors.text} />
+              </TouchableOpacity>
             </View>
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: colors.text }]}>
@@ -320,23 +374,23 @@ export default function ProfileScreen() {
             <SettingsItem
               icon={Bell}
               label={t("notifications")}
-              onPress={() => {}}
+              onPress={() => { }}
               showBadge
             />
             <SettingsItem
               icon={Moon}
               label={t("appearance")}
-              onPress={() => {}}
+              onPress={() => { }}
             />
             <SettingsItem
               icon={Shield}
               label={t("privacy")}
-              onPress={() => {}}
+              onPress={() => { }}
             />
             <SettingsItem
               icon={HelpCircle}
               label={t("help")}
-              onPress={() => {}}
+              onPress={() => { }}
             />
           </View>
         </View>
@@ -403,6 +457,26 @@ const styles = StyleSheet.create({
     fontSize: FontSize["2xl"],
     fontWeight: FontWeight.bold,
     color: "#FFFFFF",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 32,
+    zIndex: 1,
+  },
+  editAvatarButton: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    zIndex: 2,
+    ...Shadows.sm,
   },
   profileInfo: {
     flex: 1,
