@@ -3,7 +3,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from '@/hooks/useTranslation';
 import { FeedFilters } from '@/types';
 import { AlertTriangle, Filter, MapPin, MessageCircle, Newspaper, TrendingUp } from 'lucide-react-native';
-import React, { memo, useCallback, useRef } from 'react';
+import React, { memo, useCallback } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -68,16 +68,6 @@ function FilterBar({ filters, onFilterChange }: FilterBarProps) {
     const colors = Colors[colorScheme];
     const { t } = useTranslation();
 
-    // Use ref to store stable background color that only changes with colorScheme
-    const backgroundColorRef = useRef(colors.background);
-
-    // Only update background color when colorScheme actually changes
-    if (colorScheme === 'light' && backgroundColorRef.current !== Colors.light.background) {
-        backgroundColorRef.current = Colors.light.background;
-    } else if (colorScheme === 'dark' && backgroundColorRef.current !== Colors.dark.background) {
-        backgroundColorRef.current = Colors.dark.background;
-    }
-
     const isActive = useCallback((option: FilterOption) => {
         // "Semua" is only active when type is 'all' or undefined AND sortBy is 'recent' or undefined
         if (option.id === 'all') {
@@ -127,12 +117,11 @@ function FilterBar({ filters, onFilterChange }: FilterBarProps) {
     }, [filters, onFilterChange]);
 
     return (
-        <View style={[styles.container, { backgroundColor: backgroundColorRef.current }]}>
+        <View style={styles.container}>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                style={{ backgroundColor: backgroundColorRef.current }}
-                contentContainerStyle={[styles.scrollContent, { backgroundColor: backgroundColorRef.current }]}
+                contentContainerStyle={styles.scrollContent}
                 removeClippedSubviews={false}
             >
                 {FILTER_OPTIONS.map((option, index) => {
