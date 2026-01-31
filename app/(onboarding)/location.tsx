@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -65,6 +66,44 @@ export default function LocationScreen() {
             }
 
             const location = await Location.getCurrentPositionAsync({});
+
+            // Use Photon API for web (CORS friendly, OSM-based)
+            if (Platform.OS === 'web') {
+                try {
+                    const response = await fetch(
+                        `https://photon.komoot.io/reverse?lat=${location.coords.latitude}&lon=${location.coords.longitude}`
+                    );
+                    const data = await response.json();
+
+                    if (data && data.features && data.features.length > 0) {
+                        const props = data.features[0].properties;
+                        const district = props.suburb || props.district || props.locality || '';
+                        const city = props.city || props.town || props.state || '';
+
+                        // Try to match with predefined cities
+                        const matchedCity = CITIES.find(c =>
+                            city.toLowerCase().includes(c.name.toLowerCase())
+                        );
+
+                        if (matchedCity) {
+                            setSelectedCity(matchedCity.name);
+                            // Try to match district
+                            const matchedDistrict = matchedCity.districts.find(d =>
+                                district.toLowerCase().includes(d.toLowerCase())
+                            );
+                            setSelectedDistrict(matchedDistrict || matchedCity.districts[0] || district);
+                        } else {
+                            setSelectedCity(city || 'Unknown');
+                            setSelectedDistrict(district || 'Unknown');
+                        }
+                        return;
+                    }
+                } catch (webErr) {
+                    console.log('Web reverse geocode failed, trying native fallback', webErr);
+                }
+            }
+
+            // Native fallback (iOS/Android)
             const [address] = await Location.reverseGeocodeAsync({
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,

@@ -59,22 +59,27 @@ export default function EditProfileScreen() {
 
         setIsLoading(true);
         try {
-            let avatarUrl = user?.avatarUrl;
+            let avatarUrl: string | undefined = user?.avatarUrl;
 
             // Upload new avatar if selected
             if (selectedImage) {
                 avatarUrl = await uploadAvatar(selectedImage, user?.id || 'unknown');
             }
 
-            // Update user profile
-            await updateProfile({
+            // Build update object, only include avatarUrl if it has a value
+            const updateData: { displayName: string; avatarUrl?: string } = {
                 displayName: displayName.trim(),
-                avatarUrl,
-            });
+            };
 
-            Alert.alert('Sukses', 'Profil berhasil diperbarui', [
-                { text: 'OK', onPress: () => router.back() }
-            ]);
+            if (avatarUrl) {
+                updateData.avatarUrl = avatarUrl;
+            }
+
+            // Update user profile
+            await updateProfile(updateData);
+
+            // Navigate back to profile with success indicator
+            router.replace('/(tabs)/profile?updated=true' as any);
         } catch (error) {
             console.error('Error updating profile:', error);
             Alert.alert('Error', t('failedToUpdateProfile'));
