@@ -16,11 +16,13 @@ import {
     Camera,
     CheckCircle,
     Clock,
+    Edit2,
     Eye,
     MapPin,
     MessageCircle,
     MoreVertical,
     Share2,
+    Trash2,
     X,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -64,6 +66,7 @@ export default function PostDetailScreen() {
     const [isSaved, setIsSaved] = useState(false);
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showOptionsModal, setShowOptionsModal] = useState(false);
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -132,24 +135,7 @@ export default function PostDetailScreen() {
     };
 
     const handleOptions = () => {
-        if (Platform.OS === 'web') {
-            // Simplified web menu for now, but using the modal for delete confirmation
-            const choice = window.confirm('Pilih aksi:\nOK untuk Hapus\nCancel untuk Batal');
-            if (choice) {
-                setShowDeleteModal(true);
-            }
-            return;
-        }
-
-        Alert.alert(
-            'Pilihan',
-            'Pilih aksi untuk post ini',
-            [
-                { text: 'Edit Post', onPress: () => Alert.alert('Info', 'Fitur Edit akan segera hadir!') },
-                { text: 'Hapus Post', onPress: () => setShowDeleteModal(true), style: 'destructive' },
-                { text: 'Batal', style: 'cancel' },
-            ]
-        );
+        setShowOptionsModal(true);
     };
 
     const renderDeleteModal = () => {
@@ -206,7 +192,67 @@ export default function PostDetailScreen() {
         );
     };
 
-    if (isLoading && !showDeleteModal) {
+    const renderOptionsModal = () => {
+        return (
+            <Modal
+                visible={showOptionsModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowOptionsModal(false)}
+            >
+                <View style={[styles.bottomSheetOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <TouchableOpacity
+                        style={styles.overlayPressable}
+                        onPress={() => setShowOptionsModal(false)}
+                    />
+                    <View style={[styles.bottomSheetContent, { backgroundColor: colors.surface }]}>
+                        <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+
+                        <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
+                            Pilihan Post
+                        </Text>
+
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                            onPress={() => {
+                                setShowOptionsModal(false);
+                                Alert.alert('Info', 'Fitur Edit akan segera hadir!');
+                            }}
+                        >
+                            <Edit2 size={20} color={colors.text} />
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                Edit Post
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => {
+                                setShowOptionsModal(false);
+                                setTimeout(() => setShowDeleteModal(true), 300); // Small delay for animation
+                            }}
+                        >
+                            <Trash2 size={20} color={Brand.error || '#FF3B30'} />
+                            <Text style={[styles.menuItemText, { color: Brand.error || '#FF3B30' }]}>
+                                Hapus Post
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
+                            onPress={() => setShowOptionsModal(false)}
+                        >
+                            <Text style={[styles.closeButtonText, { color: colors.text }]}>
+                                Batal
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    if (isLoading && !showDeleteModal && !showOptionsModal) {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
                 <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -440,6 +486,7 @@ export default function PostDetailScreen() {
             </View>
 
             {renderDeleteModal()}
+            {renderOptionsModal()}
         </SafeAreaView>
     );
 }
@@ -760,5 +807,54 @@ const styles = StyleSheet.create({
     },
     buttonDisabled: {
         opacity: 0.5,
+    },
+    bottomSheetOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
+    overlayPressable: {
+        flex: 1,
+    },
+    bottomSheetContent: {
+        borderTopLeftRadius: Radius.xl,
+        borderTopRightRadius: Radius.xl,
+        padding: Spacing.lg,
+        paddingBottom: Spacing.xl + (Platform.OS === 'ios' ? 20 : 0),
+    },
+    dragHandle: {
+        width: 40,
+        height: 4,
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: Spacing.lg,
+        opacity: 0.5,
+    },
+    bottomSheetTitle: {
+        fontSize: FontSize.lg,
+        fontWeight: FontWeight.bold,
+        marginBottom: Spacing.md,
+        textAlign: 'center',
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: Spacing.md,
+        gap: Spacing.md,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: 'transparent',
+    },
+    menuItemText: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.medium,
+    },
+    closeButton: {
+        marginTop: Spacing.lg,
+        paddingVertical: Spacing.md,
+        borderRadius: Radius.lg,
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.bold,
     },
 });
