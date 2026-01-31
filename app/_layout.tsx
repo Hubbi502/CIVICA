@@ -1,4 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
 import { Stack, router, useRootNavigationState, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -9,6 +10,14 @@ import { Brand, Colors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 import { useLanguageStore } from '@/stores/languageStore';
 import { useThemeStore } from '@/stores/themeStore';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  } as any),
+});
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -65,11 +74,15 @@ function useProtectedRoute() {
   }, [firebaseUser, user, segments, navigationState?.key, isInitialized, isLoading]);
 }
 
+import { useNotificationListener } from '@/hooks/useNotificationListener';
+
 export default function RootLayout() {
   const { effectiveColorScheme, initialize: initializeTheme, isInitialized: isThemeInitialized } = useThemeStore();
   const colorScheme = effectiveColorScheme ?? 'light';
   const { initialize: initializeAuth, isInitialized: isAuthInitialized } = useAuthStore();
   const { initialize: initializeLanguage } = useLanguageStore();
+
+  useNotificationListener();
 
   useEffect(() => {
     initializeTheme();

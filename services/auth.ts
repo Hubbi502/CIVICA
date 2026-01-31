@@ -2,11 +2,14 @@ import { auth, db } from '@/FirebaseConfig';
 import { PersonaType, User, UserLocation, UserPreferences, UserStats } from '@/types';
 import {
     createUserWithEmailAndPassword,
+    EmailAuthProvider,
     signOut as firebaseSignOut,
     User as FirebaseUser,
     onAuthStateChanged,
+    reauthenticateWithCredential,
     sendPasswordResetEmail,
     signInWithEmailAndPassword,
+    updatePassword,
     updateProfile,
 } from 'firebase/auth';
 import { doc, getDoc, getDocFromCache, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
@@ -144,6 +147,15 @@ export const updateUserProfile = async (
         ...updates,
         updatedAt: serverTimestamp(),
     });
+};
+
+export const updateUserPassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    const user = auth.currentUser;
+    if (!user || !user.email) throw new Error('No user logged in');
+
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+    await updatePassword(user, newPassword);
 };
 
 export const updateAuthProfile = async (
