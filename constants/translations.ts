@@ -36,6 +36,9 @@ export const translations: Record<Language, Record<string, string>> = {
     location: "Lokasi",
     noPosts: "Belum ada postingan",
     beFirst: "Jadilah yang pertama berbagi informasi di area ini!",
+    searchPlaceholder: "Cari postingan...",
+    resultsFound: "hasil ditemukan untuk",
+    noSearchResults: "Tidak ada hasil untuk pencarian ini",
 
     // Common
     cancel: "Batal",
@@ -215,6 +218,9 @@ export const translations: Record<Language, Record<string, string>> = {
     location: "Location",
     noPosts: "No posts yet",
     beFirst: "Be the first to share information in this area!",
+    searchPlaceholder: "Search posts...",
+    resultsFound: "results found for",
+    noSearchResults: "No results found for this search",
 
     // Common
     cancel: "Cancel",
