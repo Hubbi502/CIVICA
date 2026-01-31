@@ -1,6 +1,6 @@
 import { db } from '@/FirebaseConfig';
 import { useAuthStore } from '@/stores/authStore';
-import * as Notifications from 'expo-notifications';
+import Notifications from '@/utils/Notifications';
 import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';

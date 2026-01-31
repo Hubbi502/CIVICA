@@ -4,9 +4,9 @@ import { getUserNotifications, markAsRead, sendNotification } from '@/services/n
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { Notification } from '@/types';
+import Notifications from '@/utils/Notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { ArrowLeft, Bell, Heart, MessageCircle, UserPlus } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
