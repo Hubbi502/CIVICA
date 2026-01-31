@@ -14,7 +14,7 @@ import { getBadgeStatus, LEVEL_CONFIG } from "@/services/gamification"; // Updat
 import { uploadAvatar } from "@/services/storage";
 import { useAuthStore } from "@/stores/authStore";
 import * as ImagePicker from 'expo-image-picker';
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
   Award,
   Camera,
@@ -37,6 +37,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -70,12 +71,20 @@ export default function ProfileScreen() {
   const colors = Colors[colorScheme];
   const { user, signOut, updateProfile, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
+  const { updated } = useLocalSearchParams<{ updated?: string }>();
   const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       refreshProfile();
-    }, [])
+      // Show success modal if coming from edit profile
+      if (updated === 'true') {
+        setShowSuccessModal(true);
+        // Clear the param to avoid showing again on re-focus
+        router.setParams({ updated: undefined });
+      }
+    }, [updated])
   );
 
   const stats = user?.stats || {
@@ -377,6 +386,34 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <View style={[styles.successIconContainer, { backgroundColor: Brand.success + '20' }]}>
+              <CheckCircle size={48} color={Brand.success} />
+            </View>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Profil Diperbarui!
+            </Text>
+            <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
+              Perubahan profil Anda telah berhasil disimpan.
+            </Text>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: Brand.primary }]}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -637,5 +674,54 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: FontSize.xs,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: Radius.xl,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    ...Shadows.lg,
+  },
+  successIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  modalTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: FontSize.md,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+    lineHeight: 22,
+  },
+  modalButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: Radius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
   },
 });
