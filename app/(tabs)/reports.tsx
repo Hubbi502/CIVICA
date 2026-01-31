@@ -28,10 +28,9 @@ import {
   MessageCircle,
   Newspaper,
   Plus,
-  ShoppingBag,
   Sparkles,
   ThumbsUp,
-  XCircle,
+  XCircle
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -68,10 +67,9 @@ const TYPE_CONFIG: Record<
   PostType,
   { icon: React.ComponentType<any>; label: string; color: string }
 > = {
-  REPORT: { icon: AlertTriangle, label: "Laporan", color: "#EF4444" },
-  PROMOTION: { icon: ShoppingBag, label: "Promosi", color: "#8B5CF6" },
+  GENERAL: { icon: Sparkles, label: "Umum", color: "#6B7280" },
   NEWS: { icon: Newspaper, label: "Berita", color: "#3B82F6" },
-  GENERAL: { icon: Sparkles, label: "Umum", color: "#10B981" },
+  REPORT: { icon: AlertTriangle, label: "Laporan", color: "#EF4444" },
 };
 
 export default function ReportsScreen() {
@@ -122,7 +120,6 @@ export default function ReportsScreen() {
   const stats = {
     total: posts.length,
     reports: posts.filter((p) => p.type === "REPORT").length,
-    promotions: posts.filter((p) => p.type === "PROMOTION").length,
     news: posts.filter((p) => p.type === "NEWS").length,
     general: posts.filter((p) => p.type === "GENERAL").length,
   };

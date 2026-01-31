@@ -19,8 +19,8 @@ import {
     EyeOff,
     ImageIcon,
     MapPin,
+    MessageCircle,
     Newspaper,
-    ShoppingBag,
     Sparkles,
     X
 } from 'lucide-react-native';
@@ -41,10 +41,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const TYPE_CONFIG: Record<PostType, { icon: React.ComponentType<any>; label: string; color: string }> = {
-    REPORT: { icon: AlertTriangle, label: 'Laporan', color: CategoryColors.report },
-    PROMOTION: { icon: ShoppingBag, label: 'Promosi', color: CategoryColors.promotion },
+    GENERAL: { icon: MessageCircle, label: 'Umum', color: CategoryColors.general },
     NEWS: { icon: Newspaper, label: 'Berita', color: CategoryColors.news },
-    GENERAL: { icon: Sparkles, label: 'Umum', color: CategoryColors.general },
+    REPORT: { icon: AlertTriangle, label: 'Laporan', color: CategoryColors.report },
 };
 
 export default function EditPostScreen() {

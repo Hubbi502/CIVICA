@@ -13,8 +13,7 @@ import {
     MessageCircle,
     MessageSquare,
     Newspaper,
-    Share2,
-    ShoppingBag,
+    Share2
 } from 'lucide-react-native';
 import React from 'react';
 import {
@@ -39,17 +38,15 @@ interface PostCardProps {
 }
 
 const TYPE_ICONS: Record<PostType, React.ComponentType<any>> = {
-    REPORT: AlertTriangle,
-    PROMOTION: ShoppingBag,
-    NEWS: Newspaper,
     GENERAL: MessageSquare,
+    NEWS: Newspaper,
+    REPORT: AlertTriangle,
 };
 
 const TYPE_LABELS: Record<PostType, string> = {
-    REPORT: 'Laporan',
-    PROMOTION: 'Promo',
-    NEWS: 'Berita',
     GENERAL: 'Umum',
+    NEWS: 'Berita',
+    REPORT: 'Laporan',
 };
 
 export default function PostCard({
