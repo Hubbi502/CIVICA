@@ -124,12 +124,12 @@ export default function SettingsScreen() {
                     <SettingsItem
                         icon={User}
                         label={t('editProfile') || 'Edit Profil'}
-                        onPress={() => router.push('/edit-profile')}
+                        onPress={() => router.push('/edit-profile' as any)}
                     />
                     <SettingsItem
                         icon={Lock}
                         label={t('security') || 'Keamanan'}
-                        onPress={() => router.push('/security')}
+                        onPress={() => router.push('/security' as any)}
                     />
                     <SettingsItem
                         icon={Shield}
