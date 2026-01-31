@@ -60,6 +60,7 @@ export default function PostDetailScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const { user } = useAuthStore();
+    const scrollViewRef = React.useRef<ScrollView>(null);
 
     const [post, setPost] = useState<PostDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -76,6 +77,18 @@ export default function PostDetailScreen() {
     const [newComment, setNewComment] = useState('');
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
     const [showComments, setShowComments] = useState(false);
+
+    // Toggle comments and scroll to bottom
+    const handleToggleComments = () => {
+        const newShowComments = !showComments;
+        setShowComments(newShowComments);
+        if (newShowComments) {
+            // Wait for the comments section to render, then scroll to bottom
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+        }
+    };
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -441,7 +454,7 @@ export default function PostDetailScreen() {
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
                 <View style={[styles.section, { backgroundColor: colors.surface }]}>
                     <View style={styles.authorRow}>
                         <View style={[styles.avatar, { backgroundColor: Brand.primary }]}>
@@ -537,6 +550,7 @@ export default function PostDetailScreen() {
                     )}
                 </View>
 
+<<<<<<< HEAD
                 {post.type === 'REPORT' && (
                     <View style={[styles.section, { backgroundColor: colors.surface }]}>
                         <View style={styles.sectionHeader}>
@@ -583,9 +597,85 @@ export default function PostDetailScreen() {
                                     </View>
                                 </View>
                             ))}
-                        </View>
+=======
+                {/* Comments Section - Always Visible */}
+                <View style={[styles.section, { backgroundColor: colors.surface }]}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                            Komentar ({comments.length})
+                        </Text>
                     </View>
-                )}
+
+                    {comments.length === 0 ? (
+                        <Text style={[styles.noCommentsText, { color: colors.textMuted }]}>
+                            Belum ada komentar. Jadilah yang pertama!
+                        </Text>
+                    ) : (
+                        comments.map((comment) => (
+                            <View key={comment.id} style={[styles.commentItem, { borderBottomColor: colors.border }]}>
+                                <View style={[styles.commentAvatar, { backgroundColor: Brand.primary }]}>
+                                    <Text style={styles.commentAvatarText}>
+                                        {comment.authorName.charAt(0).toUpperCase()}
+                                    </Text>
+                                </View>
+                                <View style={styles.commentContent}>
+                                    <View style={styles.commentHeader}>
+                                        <Text style={[styles.commentAuthor, { color: colors.text }]}>
+                                            {comment.authorName}
+                                        </Text>
+                                        <Text style={[styles.commentTime, { color: colors.textMuted }]}>
+                                            {formatDistanceToNow(comment.createdAt, { addSuffix: true, locale: id })}
+                                        </Text>
+                                    </View>
+                                    <Text style={[styles.commentText, { color: colors.textSecondary }]}>
+                                        {comment.content}
+                                    </Text>
+                                    <View style={styles.commentActions}>
+                                        <TouchableOpacity style={styles.commentLikeBtn}>
+                                            <Heart size={14} color={colors.textMuted} />
+                                            <Text style={[styles.commentLikeCount, { color: colors.textMuted }]}>
+                                                {comment.likes}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        {user?.id === comment.authorId && (
+                                            <TouchableOpacity onPress={() => handleDeleteComment(comment.id)}>
+                                                <Trash2 size={14} color={Brand.error} />
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+                                </View>
+                            </View>
+                        ))
+                    )}
+
+                    {/* Comment Input - Only shown when pressing comment button */}
+                    {showComments && (
+                        <View style={[styles.commentInputContainer, { borderTopColor: colors.border }]}>
+                            <TextInput
+                                style={[styles.commentInput, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
+                                placeholder="Tulis komentar..."
+                                placeholderTextColor={colors.textMuted}
+                                value={newComment}
+                                onChangeText={setNewComment}
+                                multiline
+                                autoFocus
+                            />
+                            <TouchableOpacity
+                                style={[styles.sendButton, !newComment.trim() && styles.sendButtonDisabled]}
+                                onPress={handleAddComment}
+                                disabled={!newComment.trim() || isSubmittingComment}
+                            >
+                                {isSubmittingComment ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Send size={18} color="#FFFFFF" />
+                                )}
+                            </TouchableOpacity>
+>>>>>>> d1536a493529c4a100e60faaa38ee04a802c5cd8
+                        </View>
+                    )}
+                </View>
+
             </ScrollView>
 
             <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
@@ -622,7 +712,7 @@ export default function PostDetailScreen() {
                 {/* Comment Button */}
                 <TouchableOpacity
                     style={[styles.actionButton, showComments && { backgroundColor: Brand.primary + '15' }]}
-                    onPress={() => setShowComments(!showComments)}
+                    onPress={handleToggleComments}
                 >
                     <MessageCircle size={20} color={showComments ? Brand.primary : colors.text} />
                     <Text style={[styles.actionButtonText, { color: showComments ? Brand.primary : colors.text }]}>
