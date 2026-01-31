@@ -397,61 +397,65 @@ export default function PostDetailScreen() {
                             {post.engagement.watchers} mengikuti
                         </Text>
                     </View>
-                    <View style={styles.statItem}>
-                        <CheckCircle size={18} color={Brand.success} />
-                        <Text style={[styles.statText, { color: colors.text }]}>
-                            {post.verifiedCount} verifikasi
-                        </Text>
-                    </View>
+                    {post.type === 'REPORT' && (
+                        <View style={styles.statItem}>
+                            <CheckCircle size={18} color={Brand.success} />
+                            <Text style={[styles.statText, { color: colors.text }]}>
+                                {post.verifiedCount} verifikasi
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
-                <View style={[styles.section, { backgroundColor: colors.surface }]}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                            Update Komunitas
-                        </Text>
-                        <TouchableOpacity style={styles.addUpdateButton}>
-                            <Camera size={16} color={Brand.primary} />
-                            <Text style={[styles.addUpdateText, { color: Brand.primary }]}>
-                                Tambah Update
+                {post.type === 'REPORT' && (
+                    <View style={[styles.section, { backgroundColor: colors.surface }]}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                Update Komunitas
                             </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.timeline}>
-                        <View style={styles.timelineItem}>
-                            <View style={[styles.timelineDot, { backgroundColor: Brand.primary }]} />
-                            <View style={styles.timelineContent}>
-                                <Text style={[styles.timelineTitle, { color: colors.text }]}>
-                                    Laporan Dibuat
+                            <TouchableOpacity style={styles.addUpdateButton}>
+                                <Camera size={16} color={Brand.primary} />
+                                <Text style={[styles.addUpdateText, { color: Brand.primary }]}>
+                                    Tambah Update
                                 </Text>
-                                <Text style={[styles.timelineTime, { color: colors.textMuted }]}>
-                                    {formatDistanceToNow(post.createdAt, { addSuffix: true, locale: id })}
-                                </Text>
-                            </View>
+                            </TouchableOpacity>
                         </View>
 
-                        {(post.updates || []).map((update) => (
-                            <View key={update.id} style={styles.timelineItem}>
-                                <View style={[styles.timelineDot, { backgroundColor: Brand.success }]} />
-                                <View style={[styles.updateCard, { backgroundColor: colors.surfaceSecondary }]}>
-                                    <Text style={[styles.updateAuthor, { color: colors.text }]}>
-                                        {update.authorName}
+                        <View style={styles.timeline}>
+                            <View style={styles.timelineItem}>
+                                <View style={[styles.timelineDot, { backgroundColor: Brand.primary }]} />
+                                <View style={styles.timelineContent}>
+                                    <Text style={[styles.timelineTitle, { color: colors.text }]}>
+                                        Laporan Dibuat
                                     </Text>
-                                    <Text style={[styles.updateContent, { color: colors.textSecondary }]}>
-                                        {update.content}
-                                    </Text>
-                                    {update.media && (
-                                        <Image source={{ uri: update.media[0].url }} style={styles.updateImage} />
-                                    )}
-                                    <Text style={[styles.updateTime, { color: colors.textMuted }]}>
-                                        {formatDistanceToNow(update.createdAt, { addSuffix: true, locale: id })}
+                                    <Text style={[styles.timelineTime, { color: colors.textMuted }]}>
+                                        {formatDistanceToNow(post.createdAt, { addSuffix: true, locale: id })}
                                     </Text>
                                 </View>
                             </View>
-                        ))}
+
+                            {(post.updates || []).map((update) => (
+                                <View key={update.id} style={styles.timelineItem}>
+                                    <View style={[styles.timelineDot, { backgroundColor: Brand.success }]} />
+                                    <View style={[styles.updateCard, { backgroundColor: colors.surfaceSecondary }]}>
+                                        <Text style={[styles.updateAuthor, { color: colors.text }]}>
+                                            {update.authorName}
+                                        </Text>
+                                        <Text style={[styles.updateContent, { color: colors.textSecondary }]}>
+                                            {update.content}
+                                        </Text>
+                                        {update.media && (
+                                            <Image source={{ uri: update.media[0].url }} style={styles.updateImage} />
+                                        )}
+                                        <Text style={[styles.updateTime, { color: colors.textMuted }]}>
+                                            {formatDistanceToNow(update.createdAt, { addSuffix: true, locale: id })}
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
                     </View>
-                </View>
+                )}
             </ScrollView>
 
             <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
