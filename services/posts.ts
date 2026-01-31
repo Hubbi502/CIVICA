@@ -139,12 +139,14 @@ export const createPost = async (
             classification: postData.classification,
             engagement: {
                 upvotes: 0,
+                downvotes: 0,
                 comments: 0,
                 shares: 0,
                 watchers: 0,
                 views: 0,
             },
             upvotedBy: [],
+            downvotedBy: [],
             watchedBy: [],
             ...(postData.classification.category === 'REPORT' && {
                 status: 'active',
@@ -167,19 +169,28 @@ export const createPost = async (
 /**
  * Recursively removes undefined values from an object.
  * Firebase updateDoc() does not accept undefined values.
+ * Also preserves special Firebase types like Timestamps.
  */
 const removeUndefined = (obj: any): any => {
     if (obj === null || obj === undefined) {
         return obj;
     }
+    // Preserve Firebase Timestamps and Dates as-is
+    if (obj instanceof Date || (obj && obj.toDate && typeof obj.toDate === 'function')) {
+        return obj;
+    }
     if (Array.isArray(obj)) {
-        return obj.map(removeUndefined);
+        return obj.map(removeUndefined).filter(item => item !== undefined);
     }
     if (typeof obj === 'object') {
         const cleaned: any = {};
         for (const [key, value] of Object.entries(obj)) {
             if (value !== undefined) {
-                cleaned[key] = removeUndefined(value);
+                const cleanedValue = removeUndefined(value);
+                // Only add non-undefined values
+                if (cleanedValue !== undefined) {
+                    cleaned[key] = cleanedValue;
+                }
             }
         }
         return cleaned;
@@ -195,6 +206,7 @@ export const updatePost = async (
         const docRef = doc(db, POSTS_COLLECTION, postId);
         // Remove undefined values as Firebase doesn't accept them
         const cleanedUpdates = removeUndefined(updates);
+        console.log('Cleaned updates to send:', JSON.stringify(cleanedUpdates, null, 2));
         await updateDoc(docRef, {
             ...cleanedUpdates,
             updatedAt: serverTimestamp(),
@@ -219,7 +231,7 @@ export const deletePost = async (postId: string): Promise<void> => {
 };
 
 /**
- * Toggle upvote on a post
+ * Toggle upvote on a post (mutually exclusive with downvote)
  */
 export const toggleUpvote = async (
     postId: string,
@@ -233,22 +245,77 @@ export const toggleUpvote = async (
 
         const post = docSnap.data();
         const hasUpvoted = post.upvotedBy?.includes(userId);
+        const hasDownvoted = post.downvotedBy?.includes(userId);
 
         if (hasUpvoted) {
+            // Remove upvote
             await updateDoc(docRef, {
                 upvotedBy: arrayRemove(userId),
                 'engagement.upvotes': increment(-1),
             });
             return false;
         } else {
-            await updateDoc(docRef, {
+            // Add upvote and remove downvote if exists
+            const updates: any = {
                 upvotedBy: arrayUnion(userId),
                 'engagement.upvotes': increment(1),
-            });
+            };
+
+            if (hasDownvoted) {
+                updates.downvotedBy = arrayRemove(userId);
+                updates['engagement.downvotes'] = increment(-1);
+            }
+
+            await updateDoc(docRef, updates);
             return true;
         }
     } catch (error) {
         console.error('Error toggling upvote:', error);
+        throw error;
+    }
+};
+
+/**
+ * Toggle downvote on a post (mutually exclusive with upvote)
+ */
+export const toggleDownvote = async (
+    postId: string,
+    userId: string
+): Promise<boolean> => {
+    try {
+        const docRef = doc(db, POSTS_COLLECTION, postId);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) return false;
+
+        const post = docSnap.data();
+        const hasDownvoted = post.downvotedBy?.includes(userId);
+        const hasUpvoted = post.upvotedBy?.includes(userId);
+
+        if (hasDownvoted) {
+            // Remove downvote
+            await updateDoc(docRef, {
+                downvotedBy: arrayRemove(userId),
+                'engagement.downvotes': increment(-1),
+            });
+            return false;
+        } else {
+            // Add downvote and remove upvote if exists
+            const updates: any = {
+                downvotedBy: arrayUnion(userId),
+                'engagement.downvotes': increment(1),
+            };
+
+            if (hasUpvoted) {
+                updates.upvotedBy = arrayRemove(userId);
+                updates['engagement.upvotes'] = increment(-1);
+            }
+
+            await updateDoc(docRef, updates);
+            return true;
+        }
+    } catch (error) {
+        console.error('Error toggling downvote:', error);
         throw error;
     }
 };
