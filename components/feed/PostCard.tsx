@@ -9,13 +9,15 @@ import {
     AlertTriangle,
     ArrowUp,
     Bookmark,
+    CheckCircle,
     Clock,
     Link,
     MapPin,
     MessageCircle,
     MessageSquare,
     Newspaper,
-    Share2
+    Share2,
+    XCircle
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -234,24 +236,46 @@ export default function PostCard({
                     </View>
                 )}
 
-                {post.type === 'REPORT' && (post as any).severity && (
+                {post.type === 'REPORT' && (
                     <View style={styles.severityContainer}>
-                        <View style={[
-                            styles.severityBadge,
-                            { backgroundColor: SeverityColors[(post as any).severity as keyof typeof SeverityColors] + '15' }
-                        ]}>
-                            <View style={[
-                                styles.severityDot,
-                                { backgroundColor: SeverityColors[(post as any).severity as keyof typeof SeverityColors] }
-                            ]} />
-                            <Text style={[
-                                styles.severityText,
-                                { color: SeverityColors[(post as any).severity as keyof typeof SeverityColors] }
-                            ]}>
-                                {(post as any).severity === 'low' ? 'Ringan' :
-                                    (post as any).severity === 'medium' ? 'Sedang' :
-                                        (post as any).severity === 'high' ? 'Tinggi' : 'Kritis'}
-                            </Text>
+                        <View style={styles.badgesRow}>
+                            {/* Verification Status Badge */}
+                            {(post as any).status === 'verified' ? (
+                                <View style={[styles.verificationBadge, { backgroundColor: '#10B98115' }]}>
+                                    <CheckCircle size={12} color="#10B981" />
+                                    <Text style={[styles.verificationText, { color: '#10B981' }]}>
+                                        Terverifikasi
+                                    </Text>
+                                </View>
+                            ) : (
+                                <View style={[styles.verificationBadge, { backgroundColor: '#F59E0B15' }]}>
+                                    <XCircle size={12} color="#F59E0B" />
+                                    <Text style={[styles.verificationText, { color: '#F59E0B' }]}>
+                                        Belum Terverifikasi
+                                    </Text>
+                                </View>
+                            )}
+
+                            {/* Severity Badge */}
+                            {(post as any).severity && (
+                                <View style={[
+                                    styles.severityBadge,
+                                    { backgroundColor: SeverityColors[(post as any).severity as keyof typeof SeverityColors] + '15' }
+                                ]}>
+                                    <View style={[
+                                        styles.severityDot,
+                                        { backgroundColor: SeverityColors[(post as any).severity as keyof typeof SeverityColors] }
+                                    ]} />
+                                    <Text style={[
+                                        styles.severityText,
+                                        { color: SeverityColors[(post as any).severity as keyof typeof SeverityColors] }
+                                    ]}>
+                                        {(post as any).severity === 'low' ? 'Ringan' :
+                                            (post as any).severity === 'medium' ? 'Sedang' :
+                                                (post as any).severity === 'high' ? 'Tinggi' : 'Kritis'}
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                     </View>
                 )}
@@ -429,10 +453,26 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.md,
         paddingBottom: Spacing.sm,
     },
+    badgesRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.xs,
+    },
+    verificationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: 4,
+        borderRadius: Radius.full,
+        gap: 4,
+    },
+    verificationText: {
+        fontSize: FontSize.xs,
+        fontWeight: FontWeight.semibold,
+    },
     severityBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        alignSelf: 'flex-start',
         paddingHorizontal: Spacing.sm,
         paddingVertical: 4,
         borderRadius: Radius.full,
