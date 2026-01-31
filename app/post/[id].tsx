@@ -58,6 +58,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -112,12 +113,14 @@ export default function PostDetailScreen() {
 
   // Auto-scroll to comment input when openComment is true
   useEffect(() => {
-    if (openComment === "true" && !isLoading) {
+    if (openComment === 'true' && !isLoading) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 300);
     }
   }, [openComment, isLoading]);
+
+
 
   // Toggle comments and scroll to bottom
   const handleToggleComments = () => {
@@ -232,18 +235,18 @@ export default function PostDetailScreen() {
       setPost((prev) =>
         prev
           ? {
-              ...prev,
-              engagement: {
-                ...prev.engagement,
-                upvotes: nowUpvoted
-                  ? prev.engagement.upvotes + 1
-                  : prev.engagement.upvotes - 1,
-                downvotes:
-                  nowUpvoted && isDownvoted
-                    ? prev.engagement.downvotes - 1
-                    : prev.engagement.downvotes,
-              },
-            }
+            ...prev,
+            engagement: {
+              ...prev.engagement,
+              upvotes: nowUpvoted
+                ? prev.engagement.upvotes + 1
+                : prev.engagement.upvotes - 1,
+              downvotes:
+                nowUpvoted && isDownvoted
+                  ? prev.engagement.downvotes - 1
+                  : prev.engagement.downvotes,
+            },
+          }
           : null,
       );
     } catch (error) {
@@ -261,18 +264,18 @@ export default function PostDetailScreen() {
       setPost((prev) =>
         prev
           ? {
-              ...prev,
-              engagement: {
-                ...prev.engagement,
-                downvotes: nowDownvoted
-                  ? (prev.engagement.downvotes || 0) + 1
-                  : (prev.engagement.downvotes || 0) - 1,
-                upvotes:
-                  nowDownvoted && isUpvoted
-                    ? prev.engagement.upvotes - 1
-                    : prev.engagement.upvotes,
-              },
-            }
+            ...prev,
+            engagement: {
+              ...prev.engagement,
+              downvotes: nowDownvoted
+                ? (prev.engagement.downvotes || 0) + 1
+                : (prev.engagement.downvotes || 0) - 1,
+              upvotes:
+                nowDownvoted && isUpvoted
+                  ? prev.engagement.upvotes - 1
+                  : prev.engagement.upvotes,
+            },
+          }
           : null,
       );
     } catch (error) {
@@ -289,14 +292,14 @@ export default function PostDetailScreen() {
       setPost((prev) =>
         prev
           ? {
-              ...prev,
-              engagement: {
-                ...prev.engagement,
-                watchers: nowWatching
-                  ? prev.engagement.watchers + 1
-                  : prev.engagement.watchers - 1,
-              },
-            }
+            ...prev,
+            engagement: {
+              ...prev.engagement,
+              watchers: nowWatching
+                ? prev.engagement.watchers + 1
+                : prev.engagement.watchers - 1,
+            },
+          }
           : null,
       );
     } catch (error) {
@@ -357,12 +360,12 @@ export default function PostDetailScreen() {
       setPost((prev) =>
         prev
           ? {
-              ...prev,
-              engagement: {
-                ...prev.engagement,
-                comments: prev.engagement.comments + 1,
-              },
-            }
+            ...prev,
+            engagement: {
+              ...prev.engagement,
+              comments: prev.engagement.comments + 1,
+            },
+          }
           : null,
       );
     } catch (error) {
@@ -453,16 +456,47 @@ export default function PostDetailScreen() {
       setPost((prev) =>
         prev
           ? {
-              ...prev,
-              engagement: {
-                ...prev.engagement,
-                comments: prev.engagement.comments - 1,
-              },
-            }
+            ...prev,
+            engagement: {
+              ...prev.engagement,
+              comments: prev.engagement.comments - 1,
+            },
+          }
           : null,
       );
     } catch (error) {
       console.error("Error deleting comment:", error);
+    }
+  };
+
+  const handleShare = async () => {
+    // Debug: Confirm function is called
+    // Alert.alert('Debug', 'Share button pressed'); 
+
+    try {
+      const deepLink = `civica://post/${postId}`;
+      const message = `Lihat postingan ini di CIVICA!\n\n${deepLink}`;
+
+      const imageUrl = post?.media && post.media.length > 0 ? post.media[0].url : undefined;
+
+      const content: any = {
+        message: message,
+        title: 'Bagikan Postingan CIVICA' // Title for email subjects etc
+      };
+
+      const options: any = {
+        dialogTitle: 'Bagikan Postingan CIVICA' // Android only: Title of the share dialog
+      };
+
+      if (Platform.OS === 'ios' && imageUrl) {
+        content.url = imageUrl;
+      }
+
+      await Share.share(content, options);
+
+    } catch (error) {
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Gagal membagikan postingan');
     }
   };
 
@@ -805,7 +839,7 @@ export default function PostDetailScreen() {
               fill={isSaved ? Brand.primary : "transparent"}
             />
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={handleShare}>
             <Share2 size={24} color={colors.icon} />
           </TouchableOpacity>
         </View>
