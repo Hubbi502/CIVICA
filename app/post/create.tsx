@@ -27,6 +27,7 @@ import {
     Alert,
     Image,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -142,9 +143,13 @@ export default function CreatePostScreen() {
             });
 
             setShowClassificationModal(false);
-            Alert.alert('Berhasil! 🎉', 'Post Anda telah dipublikasikan', [
-                { text: 'OK', onPress: () => router.back() }
-            ]);
+            if (Platform.OS === 'web') {
+                router.navigate('/(tabs)');
+            } else {
+                Alert.alert('Berhasil! 🎉', 'Post Anda telah dipublikasikan', [
+                    { text: 'OK', onPress: () => router.navigate('/(tabs)') }
+                ]);
+            }
         } catch (error) {
             console.error('Create post error:', error);
             Alert.alert('Error', 'Gagal membuat post. Silakan coba lagi.');
