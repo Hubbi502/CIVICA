@@ -366,33 +366,32 @@ export default function PostDetailScreen() {
     };
 
     const handleShare = async () => {
+        // Debug: Confirm function is called
+        // Alert.alert('Debug', 'Share button pressed'); 
+
         try {
             const deepLink = `civica://post/${postId}`;
             const message = `Lihat postingan ini di CIVICA!\n\n${deepLink}`;
 
-            // On iOS, passing a remote image URL to 'url' often allows sharing the image file (system downloads it).
-            // The 'message' will be the caption containing the deep link.
-            // On Android, sharing remote files requires downloading them first (e.g. via expo-file-system) 
-            // which adds complexity. For now, we share the deep link message.
             const imageUrl = post?.media && post.media.length > 0 ? post.media[0].url : undefined;
 
-            const shareOptions: any = {
+            const content: any = {
                 message: message,
-                title: 'Bagikan Postingan CIVICA'
+                title: 'Bagikan Postingan CIVICA' // Title for email subjects etc
+            };
+
+            const options: any = {
+                dialogTitle: 'Bagikan Postingan CIVICA' // Android only: Title of the share dialog
             };
 
             if (Platform.OS === 'ios' && imageUrl) {
-                shareOptions.url = imageUrl;
+                content.url = imageUrl;
             }
 
-            // Note: On Android, if we pass imageUrl as 'url', it often just appends the link.
-            // Since the user explicitly requested NOT to show the https link, we omit 'url' on Android
-            // and rely on the message. Note that 'civica://' links may not generate a thumbnail 
-            // on some Android apps without the image file being shared as a binary.
-
-            await Share.share(shareOptions);
+            await Share.share(content, options);
 
         } catch (error) {
+            console.error('Share error:', error);
             Alert.alert('Error', 'Gagal membagikan postingan');
         }
     };
