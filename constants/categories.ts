@@ -1,4 +1,4 @@
-import { PostType, ReportStatus, SeverityLevel } from '@/types';
+import { GeneralSubCategory, PostType, ReportStatus, SeverityLevel } from '@/types';
 
 export interface PostTypeInfo {
     id: PostType;
@@ -9,19 +9,12 @@ export interface PostTypeInfo {
 }
 
 export const PostTypes: Record<PostType, PostTypeInfo> = {
-    REPORT: {
-        id: 'REPORT',
-        name: 'Laporan',
-        icon: 'alert-triangle',
-        color: '#EF4444',
-        description: 'Laporkan masalah infrastruktur, keamanan, atau isu lingkungan',
-    },
-    PROMOTION: {
-        id: 'PROMOTION',
-        name: 'Promosi',
-        icon: 'shopping-bag',
-        color: '#10B981',
-        description: 'Promosikan produk, layanan, atau bisnis Anda',
+    GENERAL: {
+        id: 'GENERAL',
+        name: 'Umum',
+        icon: 'message-circle',
+        color: '#6B7280',
+        description: 'Posting umum tentang berbagai topik',
     },
     NEWS: {
         id: 'NEWS',
@@ -30,14 +23,32 @@ export const PostTypes: Record<PostType, PostTypeInfo> = {
         color: '#3B82F6',
         description: 'Bagikan informasi, pengumuman, atau berita lokal',
     },
-    GENERAL: {
-        id: 'GENERAL',
-        name: 'Umum',
-        icon: 'message-circle',
-        color: '#6B7280',
-        description: 'Posting umum tentang apapun',
+    REPORT: {
+        id: 'REPORT',
+        name: 'Laporan',
+        icon: 'alert-triangle',
+        color: '#EF4444',
+        description: 'Laporkan masalah infrastruktur, keamanan, atau isu lingkungan',
     },
 };
+
+export interface GeneralSubCategoryInfo {
+    id: GeneralSubCategory;
+    name: string;
+    icon: string;
+    color: string;
+}
+
+export const GeneralSubCategories: Record<GeneralSubCategory, GeneralSubCategoryInfo> = {
+    PROMOTION: { id: 'PROMOTION', name: 'Promosi', icon: 'shopping-bag', color: '#10B981' },
+    SPORTS: { id: 'SPORTS', name: 'Olahraga', icon: 'dumbbell', color: '#F97316' },
+    TECHNOLOGY: { id: 'TECHNOLOGY', name: 'Teknologi', icon: 'cpu', color: '#8B5CF6' },
+    ENTERTAINMENT: { id: 'ENTERTAINMENT', name: 'Hiburan', icon: 'music', color: '#EC4899' },
+    REAL_STORY: { id: 'REAL_STORY', name: 'Kisah Nyata', icon: 'book-open', color: '#14B8A6' },
+    FICTION: { id: 'FICTION', name: 'Kisah Fiksi', icon: 'feather', color: '#A855F7' },
+    OTHER: { id: 'OTHER', name: 'Lainnya', icon: 'more-horizontal', color: '#6B7280' },
+};
+
 
 export interface ReportCategory {
     id: string;
