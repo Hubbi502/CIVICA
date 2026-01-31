@@ -9,13 +9,11 @@ import {
     Check,
     ChevronRight,
     Globe,
-    HelpCircle,
     Info,
     Lock,
     Moon,
-    Shield,
     Smartphone,
-    User,
+    User
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -170,7 +168,7 @@ export default function SettingsScreen() {
                         icon={Info}
                         label={t('aboutCivica')}
                         value="v1.0.0"
-                        onPress={() => { }}
+                        onPress={() => router.push('/about')}
                     />
                 </View>
 
