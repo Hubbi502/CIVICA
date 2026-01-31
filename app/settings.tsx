@@ -9,13 +9,11 @@ import {
     Check,
     ChevronRight,
     Globe,
-    HelpCircle,
     Info,
     Lock,
     Moon,
-    Shield,
     Smartphone,
-    User,
+    User
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -131,11 +129,6 @@ export default function SettingsScreen() {
                         label={t('security') || 'Keamanan'}
                         onPress={() => router.push('/security' as any)}
                     />
-                    <SettingsItem
-                        icon={Shield}
-                        label={t('privacy') || 'Privasi'}
-                        onPress={() => { }}
-                    />
                 </View>
 
                 <SectionHeader title={t('preferences') || 'PREFERENSI'} />
@@ -172,15 +165,10 @@ export default function SettingsScreen() {
                 <SectionHeader title={t('support') || 'DUKUNGAN'} />
                 <View style={styles.settingsGroup}>
                     <SettingsItem
-                        icon={HelpCircle}
-                        label={t('helpCenter') || 'Pusat Bantuan'}
-                        onPress={() => { }}
-                    />
-                    <SettingsItem
                         icon={Info}
                         label={t('aboutCivica') || 'Tentang CIVICA'}
                         value="v1.0.0"
-                        onPress={() => { }}
+                        onPress={() => router.push('/about' as any)}
                     />
                 </View>
 
