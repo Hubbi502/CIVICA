@@ -361,39 +361,7 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        <View style={styles.settingsSection}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: colors.text, marginLeft: Spacing.lg },
-            ]}
-          >
-            {t("settings")}
-          </Text>
-          <View style={styles.settingsGroup}>
-            <SettingsItem
-              icon={Bell}
-              label={t("notifications")}
-              onPress={() => { }}
-              showBadge
-            />
-            <SettingsItem
-              icon={Moon}
-              label={t("appearance")}
-              onPress={() => { }}
-            />
-            <SettingsItem
-              icon={Shield}
-              label={t("privacy")}
-              onPress={() => { }}
-            />
-            <SettingsItem
-              icon={HelpCircle}
-              label={t("help")}
-              onPress={() => { }}
-            />
-          </View>
-        </View>
+
 
         <TouchableOpacity
           style={[styles.signOutButton, { borderColor: Brand.error }]}
