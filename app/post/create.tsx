@@ -1,12 +1,12 @@
 import LocationSelector from '@/components/LocationSelector';
-import { GeneralSubCategories } from '@/constants/categories';
+import { GeneralSubCategories, PostTypes, SeverityLevels } from '@/constants/categories';
 import { Brand, CategoryColors, Colors, FontSize, FontWeight, Radius, SeverityColors, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { classifyPost } from '@/services/openRouter';
 import { createPost } from '@/services/posts';
 import { uploadImages } from '@/services/storage';
 import { useAuthStore } from '@/stores/authStore';
-import { AIClassification, PostLocation, PostType } from '@/types';
+import { AIClassification, GeneralSubCategory, PostLocation, PostType, SeverityLevel } from '@/types';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import {
@@ -16,6 +16,7 @@ import {
     Edit2,
     Eye,
     EyeOff,
+    Hash,
     ImageIcon,
     MapPin,
     MessageCircle,
@@ -58,6 +59,13 @@ export default function CreatePostScreen() {
     const [classification, setClassification] = useState<AIClassification | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [location, setLocation] = useState<PostLocation | null>(null);
+
+    // Manual Mode State
+    const [generationMode, setGenerationMode] = useState<'auto' | 'manual'>('auto');
+    const [manualCategory, setManualCategory] = useState<PostType>('GENERAL');
+    const [manualSubCategory, setManualSubCategory] = useState<GeneralSubCategory>('OTHER');
+    const [manualSeverity, setManualSeverity] = useState<SeverityLevel>('low');
+    const [manualHashtags, setManualHashtags] = useState('');
 
     const canSubmit = content.trim().length > 0 || images.length > 0;
 
@@ -102,6 +110,11 @@ export default function CreatePostScreen() {
     const handleAnalyze = async () => {
         if (!canSubmit) return;
 
+        if (generationMode === 'manual') {
+            handleManualSubmit();
+            return;
+        }
+
         setIsAnalyzing(true);
 
         try {
@@ -116,8 +129,28 @@ export default function CreatePostScreen() {
         }
     };
 
-    const handleSubmit = async () => {
-        if (!classification || !user) return;
+    const handleManualSubmit = () => {
+        const hashtags = manualHashtags
+            .split(/[\s,]+/)
+            .map(tag => tag.trim().replace(/^#/, ''))
+            .filter(tag => tag.length > 0);
+
+        const manualClassification: AIClassification = {
+            category: manualCategory,
+            subCategory: manualCategory === 'GENERAL' ? manualSubCategory : undefined,
+            severity: manualCategory === 'REPORT' ? manualSeverity : undefined,
+            confidence: 1.0,
+            tags: hashtags,
+            keywords: [],
+        };
+
+        setClassification(manualClassification);
+        handleSubmit(manualClassification);
+    };
+
+    const handleSubmit = async (manualClass?: AIClassification) => {
+        const finalClassification = manualClass || classification;
+        if (!finalClassification || !user) return;
 
         setIsSubmitting(true);
 
@@ -144,7 +177,7 @@ export default function CreatePostScreen() {
                 content: content.trim(),
                 mediaUrls,
                 location: finalLocation,
-                classification,
+                classification: finalClassification,
             });
 
             setShowClassificationModal(false);
@@ -276,7 +309,7 @@ export default function CreatePostScreen() {
 
                             <TouchableOpacity
                                 style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
-                                onPress={handleSubmit}
+                                onPress={() => handleSubmit()}
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (
@@ -408,12 +441,144 @@ export default function CreatePostScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <View style={[styles.aiInfoCard, { backgroundColor: Brand.accent + '10' }]}>
-                    <Sparkles size={20} color={Brand.accent} />
-                    <Text style={[styles.aiInfoText, { color: colors.textSecondary }]}>
-                        AI akan menganalisis konten Anda dan menyarankan kategori terbaik
-                    </Text>
+                <View style={[styles.modeToggle, { backgroundColor: colors.surfaceSecondary }]}>
+                    <TouchableOpacity
+                        style={[
+                            styles.modeOption,
+                            generationMode === 'auto' && { backgroundColor: colors.surface, ...Shadows.sm }
+                        ]}
+                        onPress={() => setGenerationMode('auto')}
+                    >
+                        <Sparkles size={16} color={generationMode === 'auto' ? Brand.accent : colors.textMuted} />
+                        <Text style={[
+                            styles.modeText,
+                            { color: generationMode === 'auto' ? colors.text : colors.textMuted }
+                        ]}>
+                            Otomatis AI
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[
+                            styles.modeOption,
+                            generationMode === 'manual' && { backgroundColor: colors.surface, ...Shadows.sm }
+                        ]}
+                        onPress={() => setGenerationMode('manual')}
+                    >
+                        <Edit2 size={16} color={generationMode === 'manual' ? Brand.primary : colors.textMuted} />
+                        <Text style={[
+                            styles.modeText,
+                            { color: generationMode === 'manual' ? colors.text : colors.textMuted }
+                        ]}>
+                            Manual
+                        </Text>
+                    </TouchableOpacity>
                 </View>
+
+                {generationMode === 'manual' ? (
+                    <View style={styles.manualForm}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Kategori</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.optionsScroll}>
+                            {(Object.values(PostTypes)).map((type) => {
+                                const isSelected = manualCategory === type.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={type.id}
+                                        style={[
+                                            styles.optionCard,
+                                            { borderColor: isSelected ? type.color : colors.border },
+                                            isSelected && { backgroundColor: type.color + '10' }
+                                        ]}
+                                        onPress={() => setManualCategory(type.id)}
+                                    >
+                                        <Text style={[
+                                            styles.optionLabel,
+                                            { color: isSelected ? type.color : colors.textSecondary }
+                                        ]}>
+                                            {type.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+
+                        {manualCategory === 'GENERAL' && (
+                            <>
+                                <Text style={[styles.sectionTitle, { color: colors.text }]}>Topik</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.optionsScroll}>
+                                    {(Object.values(GeneralSubCategories)).map((sub) => {
+                                        const isSelected = manualSubCategory === sub.id;
+                                        return (
+                                            <TouchableOpacity
+                                                key={sub.id}
+                                                style={[
+                                                    styles.optionCard,
+                                                    { borderColor: isSelected ? sub.color : colors.border },
+                                                    isSelected && { backgroundColor: sub.color + '10' }
+                                                ]}
+                                                onPress={() => setManualSubCategory(sub.id)}
+                                            >
+                                                <Text style={[
+                                                    styles.optionLabel,
+                                                    { color: isSelected ? sub.color : colors.textSecondary }
+                                                ]}>
+                                                    {sub.name}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </ScrollView>
+                            </>
+                        )}
+
+                        {manualCategory === 'REPORT' && (
+                            <>
+                                <Text style={[styles.sectionTitle, { color: colors.text }]}>Tingkat Keparahan</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.optionsScroll}>
+                                    {(Object.values(SeverityLevels)).map((level) => {
+                                        const isSelected = manualSeverity === level.id;
+                                        return (
+                                            <TouchableOpacity
+                                                key={level.id}
+                                                style={[
+                                                    styles.optionCard,
+                                                    { borderColor: isSelected ? level.color : colors.border },
+                                                    isSelected && { backgroundColor: level.color + '10' }
+                                                ]}
+                                                onPress={() => setManualSeverity(level.id)}
+                                            >
+                                                <Text style={[
+                                                    styles.optionLabel,
+                                                    { color: isSelected ? level.color : colors.textSecondary }
+                                                ]}>
+                                                    {level.name}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </ScrollView>
+                            </>
+                        )}
+
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Hashtag</Text>
+                        <View style={[styles.hashtagInputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                            <Hash size={16} color={colors.textMuted} />
+                            <TextInput
+                                style={[styles.hashtagInput, { color: colors.text }]}
+                                placeholder="Contoh: jakarta, macet (pisahkan dengan koma)"
+                                placeholderTextColor={colors.textMuted}
+                                value={manualHashtags}
+                                onChangeText={setManualHashtags}
+                            />
+                        </View>
+                    </View>
+                ) : (
+                    <View style={[styles.aiInfoCard, { backgroundColor: Brand.accent + '10' }]}>
+                        <Sparkles size={20} color={Brand.accent} />
+                        <Text style={[styles.aiInfoText, { color: colors.textSecondary }]}>
+                            AI akan menganalisis konten Anda dan menyarankan kategori terbaik
+                        </Text>
+                    </View>
+                )}
             </ScrollView>
 
             {renderClassificationModal()}
@@ -692,5 +857,62 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: FontSize.md,
         fontWeight: FontWeight.semibold,
+    },
+    modeToggle: {
+        flexDirection: 'row',
+        padding: 4,
+        borderRadius: Radius.lg,
+        marginTop: Spacing.xl,
+    },
+    modeOption: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.xs,
+        paddingVertical: Spacing.sm,
+        borderRadius: Radius.md,
+    },
+    modeText: {
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.medium,
+    },
+    manualForm: {
+        marginTop: Spacing.lg,
+    },
+    sectionTitle: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.semibold,
+        marginBottom: Spacing.sm,
+        marginTop: Spacing.md,
+    },
+    optionsScroll: {
+        gap: Spacing.sm,
+        paddingRight: Spacing.lg,
+    },
+    optionCard: {
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.sm,
+        borderRadius: Radius.full,
+        borderWidth: 1,
+        marginBottom: Spacing.xs,
+    },
+    optionLabel: {
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.medium,
+    },
+    hashtagInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        borderRadius: Radius.md,
+        borderWidth: 1,
+        marginTop: Spacing.xs,
+    },
+    hashtagInput: {
+        flex: 1,
+        height: 48,
+        fontSize: FontSize.sm,
     },
 });
