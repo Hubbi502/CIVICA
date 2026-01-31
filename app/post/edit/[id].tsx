@@ -1,11 +1,12 @@
 import { db } from '@/FirebaseConfig';
+import LocationSelector from '@/components/LocationSelector';
 import { Brand, CategoryColors, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { classifyPost } from '@/services/openRouter';
 import { updatePost } from '@/services/posts';
 import { uploadImages } from '@/services/storage';
 import { useAuthStore } from '@/stores/authStore';
-import { AIClassification, PostType } from '@/types';
+import { AIClassification, PostLocation, PostType } from '@/types';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
@@ -62,6 +63,7 @@ export default function EditPostScreen() {
     const [showClassificationModal, setShowClassificationModal] = useState(false);
     const [classification, setClassification] = useState<AIClassification | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [location, setLocation] = useState<PostLocation | null>(null);
 
     const canSubmit = content.trim().length > 0 || images.length > 0;
 
@@ -79,6 +81,9 @@ export default function EditPostScreen() {
                     setImages(mediaUrls);
                     setIsAnonymous(data.isAnonymous);
                     setClassification(data.classification);
+                    if (data.location) {
+                        setLocation(data.location);
+                    }
                 } else {
                     Alert.alert('Error', 'Post tidak ditemukan', [
                         { text: 'OK', onPress: () => router.back() }
@@ -169,23 +174,30 @@ export default function EditPostScreen() {
 
             const finalMediaUrls = [...existingUrls, ...newMediaUrls];
 
-            await updatePost(postId, {
+            // Use selected location if available, otherwise keep existing or fallback
+            // For edit, we only update if user changed it. If location is null, it means user removed it or didn't set it.
+            // But my logic in LocationSelector initializes it.
+
+            const updateData: any = {
                 isAnonymous,
                 content: content.trim(),
-                media: finalMediaUrls.map(url => ({ url, type: 'image' })), // Update structure matches create structure
-                // classification, // Optionally update classification if re-analyzed
-            });
+                media: finalMediaUrls.map(url => ({ url, type: 'image' })),
+            };
+
+            if (location) {
+                updateData.location = location;
+            }
 
             // Depending on complexity, we might want to update classification too if it changed
             if (classification) {
-                await updatePost(postId, {
-                    type: classification.category,
-                    classification: classification,
-                    ...(classification.category === 'REPORT' && {
-                        severity: classification.severity || 'medium',
-                    }),
-                });
+                updateData.type = classification.category;
+                updateData.classification = classification;
+                if (classification.category === 'REPORT') {
+                    updateData.severity = classification.severity || 'medium';
+                }
             }
+
+            await updatePost(postId, updateData);
 
 
             setShowClassificationModal(false);
@@ -351,6 +363,11 @@ export default function EditPostScreen() {
                     multiline
                     maxLength={500}
                     textAlignVertical="top"
+                />
+
+                <LocationSelector
+                    onLocationSelect={setLocation}
+                    initialLocation={location}
                 />
 
                 <Text style={[styles.charCount, { color: colors.textMuted }]}>
