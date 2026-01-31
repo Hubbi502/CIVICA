@@ -3,22 +3,28 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Post, PostType } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
+import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import {
     AlertTriangle,
     ArrowUp,
     Bookmark,
     Clock,
+    Link,
     MapPin,
     MessageCircle,
     MessageSquare,
     Newspaper,
     Share2
 } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import {
+    Alert,
     Dimensions,
     Image,
+    Modal,
+    Platform,
+    Share,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -60,6 +66,7 @@ export default function PostCard({
 }: PostCardProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const [showShareModal, setShowShareModal] = useState(false);
 
     const TypeIcon = TYPE_ICONS[post.type];
     const typeColor = CategoryColors[post.type.toLowerCase() as keyof typeof CategoryColors] || colors.textMuted;
@@ -72,149 +79,245 @@ export default function PostCard({
         return formatDistanceToNow(date, { addSuffix: true, locale: id });
     };
 
-    return (
-        <TouchableOpacity
-            style={[styles.container, { backgroundColor: colors.surface }]}
-            onPress={handlePress}
-            activeOpacity={0.9}
-        >
-            <View style={styles.header}>
-                <View style={styles.authorInfo}>
-                    <View style={[styles.avatar, { backgroundColor: colors.border }]}>
-                        {post.authorAvatar ? (
-                            <Image source={{ uri: post.authorAvatar }} style={styles.avatarImage} />
-                        ) : (
-                            <Text style={[styles.avatarText, { color: colors.textSecondary }]}>
-                                {post.authorName.charAt(0).toUpperCase()}
+    const handleSharePress = () => {
+        setShowShareModal(true);
+    };
+
+    const handleCopyLink = async () => {
+        const storageUrl = process.env.EXPO_PUBLIC_STORAGE_API_URL || 'https://storage.sangkaraprasetya.site';
+        const shareLink = `${storageUrl}/post/${post.id}`;
+        const message = `Lihat postingan ini di CIVICA! ${shareLink}`;
+
+        await Clipboard.setStringAsync(message);
+        setShowShareModal(false);
+
+        if (Platform.OS === 'android') {
+            Alert.alert('Berhasil', 'Tautan disalin ke clipboard');
+        } else {
+            Alert.alert('Berhasil', 'Tautan disalin');
+        }
+    };
+
+    const handleNativeShare = async () => {
+        try {
+            const storageUrl = process.env.EXPO_PUBLIC_STORAGE_API_URL || 'https://storage.sangkaraprasetya.site';
+            const shareLink = `${storageUrl}/post/${post.id}`;
+            const message = `Lihat postingan ini di CIVICA!\n\n${shareLink}`;
+            const imageUrl = post.media && post.media.length > 0 ? post.media[0].url : undefined;
+
+            const content: any = { message, title: 'Bagikan Postingan CIVICA' };
+            const options: any = { dialogTitle: 'Bagikan Postingan CIVICA' };
+
+            if (Platform.OS === 'ios' && imageUrl) content.url = imageUrl;
+
+            await Share.share(content, options);
+            setShowShareModal(false);
+        } catch (error) {
+            Alert.alert('Error', 'Gagal membagikan postingan');
+        }
+    };
+
+    const renderShareModal = () => {
+        return (
+            <Modal
+                visible={showShareModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowShareModal(false)}
+            >
+                <View style={[styles.bottomSheetOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <TouchableOpacity
+                        style={styles.overlayPressable}
+                        onPress={() => setShowShareModal(false)}
+                    />
+                    <View style={[styles.bottomSheetContent, { backgroundColor: colors.surface }]}>
+                        <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+
+                        <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
+                            Bagikan
+                        </Text>
+
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                            onPress={handleCopyLink}
+                        >
+                            <Link size={20} color={colors.text} />
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                Salin Tautan
                             </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                            onPress={handleNativeShare}
+                        >
+                            <Share2 size={20} color={colors.text} />
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                Opsi Lainnya...
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
+                            onPress={() => setShowShareModal(false)}
+                        >
+                            <Text style={[styles.closeButtonText, { color: colors.text }]}>
+                                Batal
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    return (
+        <>
+            <TouchableOpacity
+                style={[styles.container, { backgroundColor: colors.surface }]}
+                onPress={handlePress}
+                activeOpacity={0.9}
+            >
+                <View style={styles.header}>
+                    <View style={styles.authorInfo}>
+                        <View style={[styles.avatar, { backgroundColor: colors.border }]}>
+                            {post.authorAvatar ? (
+                                <Image source={{ uri: post.authorAvatar }} style={styles.avatarImage} />
+                            ) : (
+                                <Text style={[styles.avatarText, { color: colors.textSecondary }]}>
+                                    {post.authorName.charAt(0).toUpperCase()}
+                                </Text>
+                            )}
+                        </View>
+                        <View style={styles.authorDetails}>
+                            <Text style={[styles.authorName, { color: colors.text }]}>
+                                {post.authorName}
+                            </Text>
+                            <View style={styles.metaRow}>
+                                <Clock size={12} color={colors.textMuted} />
+                                <Text style={[styles.metaText, { color: colors.textMuted }]}>
+                                    {formatTime(post.createdAt)}
+                                </Text>
+                                <View style={styles.metaDot} />
+                                <MapPin size={12} color={colors.textMuted} />
+                                <Text style={[styles.metaText, { color: colors.textMuted }]} numberOfLines={1}>
+                                    {post.location.district}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={[styles.typeBadge, { backgroundColor: typeColor + '15' }]}>
+                        <TypeIcon size={12} color={typeColor} />
+                        <Text style={[styles.typeBadgeText, { color: typeColor }]}>
+                            {TYPE_LABELS[post.type]}
+                        </Text>
+                    </View>
+                </View>
+
+                <Text style={[styles.content, { color: colors.text }]} numberOfLines={3}>
+                    {post.content}
+                </Text>
+
+                {post.media.length > 0 && (
+                    <View style={styles.imageContainer}>
+                        <Image
+                            source={{ uri: post.media[0].url }}
+                            style={styles.image}
+                            resizeMode="cover"
+                        />
+                        {post.media.length > 1 && (
+                            <View style={styles.imageCount}>
+                                <Text style={styles.imageCountText}>+{post.media.length - 1}</Text>
+                            </View>
                         )}
                     </View>
-                    <View style={styles.authorDetails}>
-                        <Text style={[styles.authorName, { color: colors.text }]}>
-                            {post.authorName}
-                        </Text>
-                        <View style={styles.metaRow}>
-                            <Clock size={12} color={colors.textMuted} />
-                            <Text style={[styles.metaText, { color: colors.textMuted }]}>
-                                {formatTime(post.createdAt)}
-                            </Text>
-                            <View style={styles.metaDot} />
-                            <MapPin size={12} color={colors.textMuted} />
-                            <Text style={[styles.metaText, { color: colors.textMuted }]} numberOfLines={1}>
-                                {post.location.district}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
+                )}
 
-                <View style={[styles.typeBadge, { backgroundColor: typeColor + '15' }]}>
-                    <TypeIcon size={12} color={typeColor} />
-                    <Text style={[styles.typeBadgeText, { color: typeColor }]}>
-                        {TYPE_LABELS[post.type]}
-                    </Text>
-                </View>
-            </View>
-
-            <Text style={[styles.content, { color: colors.text }]} numberOfLines={3}>
-                {post.content}
-            </Text>
-
-            {post.media.length > 0 && (
-                <View style={styles.imageContainer}>
-                    <Image
-                        source={{ uri: post.media[0].url }}
-                        style={styles.image}
-                        resizeMode="cover"
-                    />
-                    {post.media.length > 1 && (
-                        <View style={styles.imageCount}>
-                            <Text style={styles.imageCountText}>+{post.media.length - 1}</Text>
-                        </View>
-                    )}
-                </View>
-            )}
-
-            {post.type === 'REPORT' && (post as any).severity && (
-                <View style={styles.severityContainer}>
-                    <View style={[
-                        styles.severityBadge,
-                        { backgroundColor: SeverityColors[(post as any).severity as keyof typeof SeverityColors] + '15' }
-                    ]}>
+                {post.type === 'REPORT' && (post as any).severity && (
+                    <View style={styles.severityContainer}>
                         <View style={[
-                            styles.severityDot,
-                            { backgroundColor: SeverityColors[(post as any).severity as keyof typeof SeverityColors] }
-                        ]} />
-                        <Text style={[
-                            styles.severityText,
-                            { color: SeverityColors[(post as any).severity as keyof typeof SeverityColors] }
+                            styles.severityBadge,
+                            { backgroundColor: SeverityColors[(post as any).severity as keyof typeof SeverityColors] + '15' }
                         ]}>
-                            {(post as any).severity === 'low' ? 'Ringan' :
-                                (post as any).severity === 'medium' ? 'Sedang' :
-                                    (post as any).severity === 'high' ? 'Tinggi' : 'Kritis'}
-                        </Text>
-                    </View>
-                </View>
-            )}
-
-            {post.classification.tags.length > 0 && (
-                <View style={styles.tagsContainer}>
-                    {post.classification.tags.slice(0, 3).map((tag) => (
-                        <View key={tag} style={[styles.tag, { backgroundColor: colors.surfaceSecondary }]}>
-                            <Text style={[styles.tagText, { color: colors.textSecondary }]}>
-                                #{tag}
+                            <View style={[
+                                styles.severityDot,
+                                { backgroundColor: SeverityColors[(post as any).severity as keyof typeof SeverityColors] }
+                            ]} />
+                            <Text style={[
+                                styles.severityText,
+                                { color: SeverityColors[(post as any).severity as keyof typeof SeverityColors] }
+                            ]}>
+                                {(post as any).severity === 'low' ? 'Ringan' :
+                                    (post as any).severity === 'medium' ? 'Sedang' :
+                                        (post as any).severity === 'high' ? 'Tinggi' : 'Kritis'}
                             </Text>
                         </View>
-                    ))}
+                    </View>
+                )}
+
+                {post.classification.tags.length > 0 && (
+                    <View style={styles.tagsContainer}>
+                        {post.classification.tags.slice(0, 3).map((tag) => (
+                            <View key={tag} style={[styles.tag, { backgroundColor: colors.surfaceSecondary }]}>
+                                <Text style={[styles.tagText, { color: colors.textSecondary }]}>
+                                    #{tag}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+
+                <View style={[styles.footer, { borderTopColor: colors.borderLight }]}>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => onUpvote?.(post.id)}
+                    >
+                        <ArrowUp
+                            size={20}
+                            color={isUpvoted ? Brand.primary : colors.icon}
+                            fill={isUpvoted ? Brand.primary : 'transparent'}
+                        />
+                        <Text style={[
+                            styles.actionText,
+                            { color: isUpvoted ? Brand.primary : colors.textSecondary }
+                        ]}>
+                            {post.engagement.upvotes}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => onComment?.(post.id)}
+                    >
+                        <MessageCircle size={20} color={colors.icon} />
+                        <Text style={[styles.actionText, { color: colors.textSecondary }]}>
+                            {post.engagement.comments}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={handleSharePress}
+                    >
+                        <Share2 size={20} color={colors.icon} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => onSave?.(post.id)}
+                    >
+                        <Bookmark
+                            size={20}
+                            color={isSaved ? Brand.primary : colors.icon}
+                            fill={isSaved ? Brand.primary : 'transparent'}
+                        />
+                    </TouchableOpacity>
                 </View>
-            )}
+            </TouchableOpacity>
 
-            <View style={[styles.footer, { borderTopColor: colors.borderLight }]}>
-                <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => onUpvote?.(post.id)}
-                >
-                    <ArrowUp
-                        size={20}
-                        color={isUpvoted ? Brand.primary : colors.icon}
-                        fill={isUpvoted ? Brand.primary : 'transparent'}
-                    />
-                    <Text style={[
-                        styles.actionText,
-                        { color: isUpvoted ? Brand.primary : colors.textSecondary }
-                    ]}>
-                        {post.engagement.upvotes}
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => onComment?.(post.id)}
-                >
-                    <MessageCircle size={20} color={colors.icon} />
-                    <Text style={[styles.actionText, { color: colors.textSecondary }]}>
-                        {post.engagement.comments}
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => onShare?.(post.id)}
-                >
-                    <Share2 size={20} color={colors.icon} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => onSave?.(post.id)}
-                >
-                    <Bookmark
-                        size={20}
-                        color={isSaved ? Brand.primary : colors.icon}
-                        fill={isSaved ? Brand.primary : 'transparent'}
-                    />
-                </TouchableOpacity>
-            </View>
-        </TouchableOpacity>
+            {renderShareModal()}
+        </>
     );
 }
 
@@ -376,5 +479,54 @@ const styles = StyleSheet.create({
     actionText: {
         fontSize: FontSize.sm,
         fontWeight: FontWeight.medium,
+    },
+    // Share Modal Styles
+    bottomSheetOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
+    overlayPressable: {
+        flex: 1,
+    },
+    bottomSheetContent: {
+        borderTopLeftRadius: Radius.xl,
+        borderTopRightRadius: Radius.xl,
+        paddingHorizontal: Spacing.lg,
+        paddingBottom: Spacing.xl,
+        paddingTop: Spacing.md,
+    },
+    dragHandle: {
+        width: 40,
+        height: 4,
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: Spacing.lg,
+    },
+    bottomSheetTitle: {
+        fontSize: FontSize.lg,
+        fontWeight: FontWeight.bold,
+        marginBottom: Spacing.lg,
+        textAlign: 'center',
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: Spacing.md,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        gap: Spacing.md,
+    },
+    menuItemText: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.medium,
+    },
+    closeButton: {
+        marginTop: Spacing.lg,
+        paddingVertical: Spacing.md,
+        borderRadius: Radius.lg,
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.semibold,
     },
 });
