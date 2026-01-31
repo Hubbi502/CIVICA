@@ -1,6 +1,6 @@
 import { Brand, Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { useTranslation } from '@/hooks/useTranslation';
-import { getUserNotifications, markAsRead, sendNotification } from '@/services/notifications';
+import { getUserNotifications, markAsRead } from '@/services/notifications';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { Notification } from '@/types';
@@ -97,39 +97,6 @@ export default function NotificationsScreen() {
                 <View style={styles.placeholder} />
             </View>
 
-            {/* Simulation Button */}
-            <TouchableOpacity
-                style={[styles.simulateButton, { backgroundColor: Brand.accent }]}
-                onPress={async () => {
-                    if (user?.id) {
-                        try {
-                            await sendNotification(
-                                user.id,
-                                'upvote',
-                                'Test Notifikasi',
-                                'Ini adalah simulasi notifikasi like pada postingan anda.',
-                                { postId: 'simulation', userId: user.id }
-                            );
-
-                            if (Platform.OS !== 'web') {
-                                await Notifications.scheduleNotificationAsync({
-                                    content: {
-                                        title: "Test Notifikasi 🔔",
-                                        body: 'Ini adalah simulasi notifikasi like pada postingan anda.',
-                                    },
-                                    trigger: null,
-                                });
-                            } else {
-                                alert('Notifikasi tersimulasi! (Push notif tidak muncul di web)');
-                            }
-                        } catch (e) {
-                            console.error("Simulation error", e);
-                        }
-                    }
-                }}
-            >
-                <Text style={styles.simulateButtonText}>Simulasikan Notifikasi Masuk</Text>
-            </TouchableOpacity>
 
             {loading ? (
                 <View style={styles.centered}>
