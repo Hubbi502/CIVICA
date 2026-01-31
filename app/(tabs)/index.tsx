@@ -300,6 +300,7 @@ export default function HomeScreen() {
           <PostCard
             post={item}
             onUpvote={handleUpvote}
+            onComment={(postId) => router.push(`/post/${postId}?openComment=true`)}
             onSave={handleSave}
             isUpvoted={upvotedPosts.has(item.id)}
             isSaved={savedPosts.has(item.id)}

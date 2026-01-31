@@ -1,4 +1,4 @@
- import { db } from '@/FirebaseConfig';
+import { db } from '@/FirebaseConfig';
 import { Comment } from '@/types';
 import {
     addDoc,
@@ -135,3 +135,35 @@ export const toggleCommentLike = async (
         throw error;
     }
 };
+
+/**
+ * Update a comment
+ */
+export const updateComment = async (
+    commentId: string,
+    content: string
+): Promise<void> => {
+    try {
+        const commentRef = doc(db, COMMENTS_COLLECTION, commentId);
+        await updateDoc(commentRef, {
+            content,
+            updatedAt: serverTimestamp(),
+        });
+    } catch (error) {
+        console.error('Error updating comment:', error);
+        throw error;
+    }
+};
+
+/**
+ * Report a comment
+ */
+export const reportComment = async (
+    commentId: string,
+    reason: string
+): Promise<void> => {
+    // Mock implementation for now
+    console.log('Reporting comment:', commentId, reason);
+    return Promise.resolve();
+};
+

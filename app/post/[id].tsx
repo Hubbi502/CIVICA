@@ -1,7 +1,7 @@
 import { Brand, Colors, FontSize, FontWeight, Radius, SeverityColors, Spacing } from '@/constants/theme';
 import { db } from '@/FirebaseConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { addComment, deleteComment, getComments } from '@/services/comments';
+import { addComment, deleteComment, getComments, reportComment, toggleCommentLike, updateComment } from '@/services/comments';
 import { deletePost, toggleDownvote, toggleUpvote, toggleWatch } from '@/services/posts';
 import { useAuthStore } from '@/stores/authStore';
 import { Comment, Post } from '@/types';
@@ -17,6 +17,7 @@ import {
     Bookmark,
     CheckCircle,
     Clock,
+    CornerDownLeft,
     Edit2,
     Eye,
     Heart,
@@ -58,7 +59,7 @@ interface PostDetail extends Post {
 }
 
 export default function PostDetailScreen() {
-    const { id: postId } = useLocalSearchParams<{ id: string }>();
+    const { id: postId, openComment } = useLocalSearchParams<{ id: string; openComment?: string }>();
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const { user } = useAuthStore();
@@ -73,12 +74,26 @@ export default function PostDetailScreen() {
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showOptionsModal, setShowOptionsModal] = useState(false);
+    const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+    const [editCommentContent, setEditCommentContent] = useState('');
+    const [showCommentOptionsModal, setShowCommentOptionsModal] = useState(false);
 
-    // Comments state
+    // Comments state - auto-open if navigated with openComment query param
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-    const [showComments, setShowComments] = useState(false);
+    const [showComments, setShowComments] = useState(openComment === 'true');
+    const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+
+    // Auto-scroll to comment input when openComment is true
+    useEffect(() => {
+        if (openComment === 'true' && !isLoading) {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 300);
+        }
+    }, [openComment, isLoading]);
 
     // Toggle comments and scroll to bottom
     const handleToggleComments = () => {
@@ -234,6 +249,36 @@ export default function PostDetailScreen() {
         }
     };
 
+    const handleLikeComment = async (commentId: string) => {
+        if (!user?.id) return;
+
+        // Optimistic update
+        setComments(prevComments => prevComments.map(c => {
+            if (c.id === commentId) {
+                const isLiked = c.likedBy.includes(user.id);
+                return {
+                    ...c,
+                    likes: isLiked ? c.likes - 1 : c.likes + 1,
+                    likedBy: isLiked
+                        ? c.likedBy.filter(id => id !== user.id)
+                        : [...c.likedBy, user.id]
+                };
+            }
+            return c;
+        }));
+
+        try {
+            await toggleCommentLike(commentId, user.id);
+        } catch (error) {
+            console.error('Error toggling like:', error);
+            // Revert logic could go here, or just refresh
+            if (postId) {
+                const fetchedComments = await getComments(postId);
+                setComments(fetchedComments);
+            }
+        }
+    };
+
     const handleAddComment = async () => {
         if (!user?.id || !postId || !newComment.trim()) return;
         try {
@@ -243,9 +288,11 @@ export default function PostDetailScreen() {
                 user.id,
                 user.displayName || 'User',
                 user.avatarUrl,
-                newComment.trim()
+                newComment.trim(),
+                replyingTo?.id // Pass parentId if replying
             );
             setNewComment('');
+            setReplyingTo(null); // Clear reply state
             // Refresh comments
             const fetchedComments = await getComments(postId);
             setComments(fetchedComments);
@@ -265,6 +312,70 @@ export default function PostDetailScreen() {
         }
     };
 
+    const handleReply = (comment: Comment) => {
+        setReplyingTo(comment);
+        setShowComments(true);
+        setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+    };
+
+    const cancelReply = () => {
+        setReplyingTo(null);
+    };
+
+    const isCommentEditable = (createdAt: Date) => {
+        const now = new Date();
+        const diffInMinutes = (now.getTime() - createdAt.getTime()) / 1000 / 60;
+        return diffInMinutes <= 3;
+    };
+
+    const handleCommentOptions = (comment: Comment) => {
+        setActiveCommentId(comment.id);
+        setShowCommentOptionsModal(true);
+    };
+
+    const handleEditComment = () => {
+        const comment = comments.find(c => c.id === activeCommentId);
+        if (comment) {
+            setEditingCommentId(comment.id);
+            setEditCommentContent(comment.content);
+        }
+        setShowCommentOptionsModal(false);
+    };
+
+    const handleSaveEditComment = async () => {
+        if (!editingCommentId || !editCommentContent.trim()) return;
+
+        try {
+            await updateComment(editingCommentId, editCommentContent.trim());
+            setComments(prev => prev.map(c =>
+                c.id === editingCommentId ? { ...c, content: editCommentContent.trim() } : c
+            ));
+            setEditingCommentId(null);
+            setEditCommentContent('');
+        } catch (error) {
+            Alert.alert('Error', 'Gagal mengedit komentar');
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCommentId(null);
+        setEditCommentContent('');
+    };
+
+    const handleReportCommentAction = async () => {
+        if (activeCommentId) {
+            try {
+                await reportComment(activeCommentId, 'Reported by user');
+                Alert.alert('Info', 'Laporan diterima. Kami akan meninjau komentar ini.');
+            } catch (error) {
+                Alert.alert('Error', 'Gagal melaporkan komentar');
+            }
+        }
+        setShowCommentOptionsModal(false);
+    };
+
     const handleDeleteComment = async (commentId: string) => {
         if (!postId) return;
         try {
@@ -281,6 +392,85 @@ export default function PostDetailScreen() {
         } catch (error) {
             console.error('Error deleting comment:', error);
         }
+    };
+
+    const renderCommentOptionsModal = () => {
+        const comment = comments.find(c => c.id === activeCommentId);
+        if (!comment) return null;
+
+        const isCommentAuthor = user?.id === comment.authorId;
+        const canEdit = isCommentAuthor && isCommentEditable(comment.createdAt);
+
+        return (
+            <Modal
+                visible={showCommentOptionsModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowCommentOptionsModal(false)}
+            >
+                <View style={[styles.bottomSheetOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <TouchableOpacity
+                        style={styles.overlayPressable}
+                        onPress={() => setShowCommentOptionsModal(false)}
+                    />
+                    <View style={[styles.bottomSheetContent, { backgroundColor: colors.surface }]}>
+                        <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+
+                        <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
+                            Pilihan Komentar
+                        </Text>
+
+                        {canEdit && (
+                            <TouchableOpacity
+                                style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                                onPress={handleEditComment}
+                            >
+                                <Edit2 size={20} color={colors.text} />
+                                <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                    Edit Komentar
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {!isCommentAuthor && (
+                            <TouchableOpacity
+                                style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                                onPress={handleReportCommentAction}
+                            >
+                                <AlertTriangle size={20} color={Brand.warning || '#F59E0B'} />
+                                <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                    Laporkan Komentar
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {isCommentAuthor && (
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    setShowCommentOptionsModal(false);
+                                    handleDeleteComment(comment.id);
+                                }}
+                            >
+                                <Trash2 size={20} color={Brand.error || '#FF3B30'} />
+                                <Text style={[styles.menuItemText, { color: Brand.error || '#FF3B30' }]}>
+                                    Hapus Komentar
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
+                            onPress={() => setShowCommentOptionsModal(false)}
+                        >
+                            <Text style={[styles.closeButtonText, { color: colors.text }]}>
+                                Batal
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        );
     };
 
     const renderDeleteModal = () => {
@@ -565,69 +755,204 @@ export default function PostDetailScreen() {
                             Belum ada komentar. Jadilah yang pertama!
                         </Text>
                     ) : (
-                        comments.map((comment) => (
-                            <View key={comment.id} style={[styles.commentItem, { borderBottomColor: colors.border }]}>
-                                <View style={[styles.commentAvatar, { backgroundColor: Brand.primary }]}>
-                                    <Text style={styles.commentAvatarText}>
-                                        {comment.authorName.charAt(0).toUpperCase()}
-                                    </Text>
-                                </View>
-                                <View style={styles.commentContent}>
-                                    <View style={styles.commentHeader}>
-                                        <Text style={[styles.commentAuthor, { color: colors.text }]}>
-                                            {comment.authorName}
-                                        </Text>
-                                        <Text style={[styles.commentTime, { color: colors.textMuted }]}>
-                                            {formatDistanceToNow(comment.createdAt, { addSuffix: true, locale: id })}
-                                        </Text>
-                                    </View>
-                                    <Text style={[styles.commentText, { color: colors.textSecondary }]}>
-                                        {comment.content}
-                                    </Text>
-                                    <View style={styles.commentActions}>
-                                        <TouchableOpacity style={styles.commentLikeBtn}>
-                                            <Heart size={14} color={colors.textMuted} />
-                                            <Text style={[styles.commentLikeCount, { color: colors.textMuted }]}>
-                                                {comment.likes}
-                                            </Text>
-                                        </TouchableOpacity>
-                                        {user?.id === comment.authorId && (
-                                            <TouchableOpacity onPress={() => handleDeleteComment(comment.id)}>
-                                                <Trash2 size={14} color={Brand.error} />
-                                            </TouchableOpacity>
+                        <>
+                            {/* Parent comments (no parentId) */}
+                            {comments.filter(c => !c.parentId).map((comment) => (
+                                <View key={comment.id}>
+                                    <View style={[styles.commentItem, { borderBottomColor: colors.border }]}>
+                                        {comment.authorAvatar ? (
+                                            <Image source={{ uri: comment.authorAvatar }} style={styles.commentAvatar} />
+                                        ) : (
+                                            <View style={[styles.commentAvatar, { backgroundColor: Brand.primary }]}>
+                                                <Text style={styles.commentAvatarText}>
+                                                    {comment.authorName.charAt(0).toUpperCase()}
+                                                </Text>
+                                            </View>
                                         )}
+                                        <View style={styles.commentContent}>
+                                            <View style={styles.commentHeader}>
+                                                <View style={{ flex: 1 }}>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                        <Text style={[styles.commentAuthor, { color: colors.text }]}>
+                                                            {comment.authorName}
+                                                        </Text>
+                                                        <Text style={[styles.commentTime, { color: colors.textMuted }]}>
+                                                            {formatDistanceToNow(comment.createdAt, { addSuffix: true, locale: id })}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                <TouchableOpacity onPress={() => handleCommentOptions(comment)}>
+                                                    <MoreVertical size={16} color={colors.textMuted} />
+                                                </TouchableOpacity>
+                                            </View>
+
+                                            {editingCommentId === comment.id ? (
+                                                <View style={styles.editContainer}>
+                                                    <TextInput
+                                                        style={[styles.editInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
+                                                        value={editCommentContent}
+                                                        onChangeText={setEditCommentContent}
+                                                        multiline
+                                                        autoFocus
+                                                    />
+                                                    <View style={styles.editActions}>
+                                                        <TouchableOpacity onPress={handleCancelEdit} style={styles.editCancelBtn}>
+                                                            <Text style={[styles.editBtnText, { color: colors.textSecondary }]}>Batal</Text>
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity onPress={handleSaveEditComment} style={styles.editSaveBtn}>
+                                                            <Text style={[styles.editBtnText, { color: Brand.primary }]}>Simpan</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+                                            ) : (
+                                                <Text style={[styles.commentText, { color: colors.textSecondary }]}>
+                                                    {comment.content}
+                                                </Text>
+                                            )}
+
+                                            <View style={styles.commentActions}>
+                                                <TouchableOpacity
+                                                    style={styles.commentLikeBtn}
+                                                    onPress={() => handleLikeComment(comment.id)}
+                                                >
+                                                    <Heart
+                                                        size={14}
+                                                        color={comment.likedBy?.includes(user?.id || '') ? Brand.error : colors.textMuted}
+                                                        fill={comment.likedBy?.includes(user?.id || '') ? Brand.error : 'transparent'}
+                                                    />
+                                                    <Text style={[styles.commentLikeCount, { color: colors.textMuted }]}>
+                                                        {comment.likes}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={styles.commentReplyBtn}
+                                                    onPress={() => handleReply(comment)}
+                                                >
+                                                    <CornerDownLeft size={14} color={Brand.primary} />
+                                                    <Text style={[styles.commentReplyText, { color: Brand.primary }]}>
+                                                        Balas
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
                                     </View>
+
+                                    {/* Nested replies */}
+                                    {comments.filter(r => r.parentId === comment.id).map((reply) => (
+                                        <View key={reply.id} style={[styles.commentItem, styles.replyItem, { borderBottomColor: colors.border }]}>
+                                            {reply.authorAvatar ? (
+                                                <Image source={{ uri: reply.authorAvatar }} style={[styles.commentAvatar, styles.replyAvatar]} />
+                                            ) : (
+                                                <View style={[styles.commentAvatar, styles.replyAvatar, { backgroundColor: Brand.accent }]}>
+                                                    <Text style={[styles.commentAvatarText, { fontSize: 10 }]}>
+                                                        {reply.authorName.charAt(0).toUpperCase()}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                            <View style={styles.commentContent}>
+                                                <View style={styles.commentHeader}>
+                                                    <View style={{ flex: 1 }}>
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                            <Text style={[styles.commentAuthor, { color: colors.text, fontSize: 12 }]}>
+                                                                {reply.authorName}
+                                                            </Text>
+                                                            <Text style={[styles.commentTime, { color: colors.textMuted }]}>
+                                                                {formatDistanceToNow(reply.createdAt, { addSuffix: true, locale: id })}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                    <TouchableOpacity onPress={() => handleCommentOptions(reply)}>
+                                                        <MoreVertical size={14} color={colors.textMuted} />
+                                                    </TouchableOpacity>
+                                                </View>
+
+                                                {editingCommentId === reply.id ? (
+                                                    <View style={styles.editContainer}>
+                                                        <TextInput
+                                                            style={[styles.editInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceSecondary, fontSize: 13 }]}
+                                                            value={editCommentContent}
+                                                            onChangeText={setEditCommentContent}
+                                                            multiline
+                                                            autoFocus
+                                                        />
+                                                        <View style={styles.editActions}>
+                                                            <TouchableOpacity onPress={handleCancelEdit} style={styles.editCancelBtn}>
+                                                                <Text style={[styles.editBtnText, { color: colors.textSecondary }]}>Batal</Text>
+                                                            </TouchableOpacity>
+                                                            <TouchableOpacity onPress={handleSaveEditComment} style={styles.editSaveBtn}>
+                                                                <Text style={[styles.editBtnText, { color: Brand.primary }]}>Simpan</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                ) : (
+                                                    <Text style={[styles.commentText, { color: colors.textSecondary, fontSize: 13 }]}>
+                                                        {reply.content}
+                                                    </Text>
+                                                )}
+
+                                                <View style={styles.commentActions}>
+                                                    <TouchableOpacity
+                                                        style={styles.commentLikeBtn}
+                                                        onPress={() => handleLikeComment(reply.id)}
+                                                    >
+                                                        <Heart
+                                                            size={12}
+                                                            color={reply.likedBy?.includes(user?.id || '') ? Brand.error : colors.textMuted}
+                                                            fill={reply.likedBy?.includes(user?.id || '') ? Brand.error : 'transparent'}
+                                                        />
+                                                        <Text style={[styles.commentLikeCount, { color: colors.textMuted }]}>
+                                                            {reply.likes}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    ))}
                                 </View>
-                            </View>
-                        ))
+                            ))}
+                        </>
                     )}
 
                     {/* Comment Input - Only shown when pressing comment button */}
                     {showComments && (
                         <View style={[styles.commentInputContainer, { borderTopColor: colors.border }]}>
-                            <TextInput
-                                style={[styles.commentInput, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
-                                placeholder="Tulis komentar..."
-                                placeholderTextColor={colors.textMuted}
-                                value={newComment}
-                                onChangeText={setNewComment}
-                                multiline
-                                autoFocus
-                            />
-                            <TouchableOpacity
-                                style={[styles.sendButton, !newComment.trim() && styles.sendButtonDisabled]}
-                                onPress={handleAddComment}
-                                disabled={!newComment.trim() || isSubmittingComment}
-                            >
-                                {isSubmittingComment ? (
-                                    <ActivityIndicator size="small" color="#FFFFFF" />
-                                ) : (
-                                    <Send size={18} color="#FFFFFF" />
-                                )}
-                            </TouchableOpacity>
+                            {/* Reply indicator */}
+                            {replyingTo && (
+                                <View style={[styles.replyIndicator, { backgroundColor: colors.surfaceSecondary }]}>
+                                    <Text style={[styles.replyIndicatorText, { color: colors.textSecondary }]}>
+                                        Membalas {replyingTo.authorName}
+                                    </Text>
+                                    <TouchableOpacity onPress={cancelReply}>
+                                        <X size={16} color={colors.textMuted} />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                            <View style={styles.commentInputRow}>
+                                <TextInput
+                                    style={[styles.commentInput, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
+                                    placeholder={replyingTo ? `Balas ke ${replyingTo.authorName}...` : "Tulis komentar..."}
+                                    placeholderTextColor={colors.textMuted}
+                                    value={newComment}
+                                    onChangeText={setNewComment}
+                                    multiline
+                                    autoFocus
+                                />
+                                <TouchableOpacity
+                                    style={[styles.sendButton, !newComment.trim() && styles.sendButtonDisabled]}
+                                    onPress={handleAddComment}
+                                    disabled={!newComment.trim() || isSubmittingComment}
+                                >
+                                    {isSubmittingComment ? (
+                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                    ) : (
+                                        <Send size={18} color="#FFFFFF" />
+                                    )}
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     )}
                 </View>
+
 
             </ScrollView>
 
@@ -687,6 +1012,7 @@ export default function PostDetailScreen() {
 
             {renderDeleteModal()}
             {renderOptionsModal()}
+            {renderCommentOptionsModal()}
         </SafeAreaView>
     );
 }
@@ -1061,21 +1387,19 @@ const styles = StyleSheet.create({
     voteButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
-        borderRadius: Radius.lg,
         gap: 4,
     },
     voteText: {
         fontSize: FontSize.sm,
         fontWeight: FontWeight.semibold,
     },
+
     // Comments
     noCommentsText: {
+        fontSize: FontSize.md,
+        fontStyle: 'italic',
         textAlign: 'center',
-        fontSize: FontSize.sm,
-        paddingVertical: Spacing.lg,
+        marginVertical: Spacing.xl,
     },
     commentItem: {
         flexDirection: 'row',
@@ -1087,22 +1411,22 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     commentAvatarText: {
-        color: '#FFFFFF',
         fontSize: FontSize.sm,
         fontWeight: FontWeight.bold,
+        color: '#FFFFFF',
     },
     commentContent: {
         flex: 1,
     },
     commentHeader: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-        marginBottom: 4,
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 2,
     },
     commentAuthor: {
         fontSize: FontSize.sm,
@@ -1112,14 +1436,15 @@ const styles = StyleSheet.create({
         fontSize: FontSize.xs,
     },
     commentText: {
-        fontSize: FontSize.sm,
+        fontSize: FontSize.md,
         lineHeight: 20,
+        marginBottom: Spacing.xs,
     },
     commentActions: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.md,
-        marginTop: Spacing.xs,
+        marginTop: 4,
     },
     commentLikeBtn: {
         flexDirection: 'row',
@@ -1129,32 +1454,101 @@ const styles = StyleSheet.create({
     commentLikeCount: {
         fontSize: FontSize.xs,
     },
+    commentReplyBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    commentReplyText: {
+        fontSize: FontSize.xs,
+        fontWeight: FontWeight.medium,
+    },
+
+    // Nested Replies
+    replyItem: {
+        marginLeft: 42,
+        borderBottomWidth: 0,
+        paddingVertical: Spacing.sm,
+    },
+    replyAvatar: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+    },
+
+    // Comment Input
     commentInputContainer: {
+        paddingTop: Spacing.md,
+        borderTopWidth: 1,
+    },
+    replyIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: 4,
+        borderRadius: Radius.sm,
+        marginBottom: Spacing.sm,
+    },
+    replyIndicatorText: {
+        fontSize: FontSize.xs,
+        fontStyle: 'italic',
+    },
+    commentInputRow: {
         flexDirection: 'row',
         alignItems: 'flex-end',
         gap: Spacing.sm,
-        paddingTop: Spacing.md,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        marginTop: Spacing.sm,
     },
     commentInput: {
         flex: 1,
         minHeight: 40,
         maxHeight: 100,
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
         borderRadius: Radius.lg,
-        fontSize: FontSize.sm,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: 8,
+        fontSize: FontSize.md,
     },
     sendButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
         backgroundColor: Brand.primary,
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     sendButtonDisabled: {
-        opacity: 0.5,
+        backgroundColor: '#E5E7EB', // Gray 200
+    },
+    // Edit Comment
+    editContainer: {
+        flex: 1,
+        marginTop: Spacing.sm,
+    },
+    editInput: {
+        borderWidth: 1,
+        borderRadius: Radius.md,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        fontSize: FontSize.md,
+        minHeight: 60,
+        textAlignVertical: 'top',
+    },
+    editActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: Spacing.md,
+        marginTop: Spacing.sm,
+    },
+    editCancelBtn: {
+        paddingVertical: 4,
+        paddingHorizontal: Spacing.sm,
+    },
+    editSaveBtn: {
+        paddingVertical: 4,
+        paddingHorizontal: Spacing.sm,
+    },
+    editBtnText: {
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.medium,
     },
 });
