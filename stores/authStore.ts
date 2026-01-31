@@ -225,10 +225,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     refreshProfile: async () => {
         const { firebaseUser } = get();
+        console.log('[refreshProfile] Called, firebaseUser:', firebaseUser?.uid);
         if (!firebaseUser) return;
 
         try {
             const profile = await authService.getUserProfile(firebaseUser.uid);
+            console.log('[refreshProfile] Profile stats:', profile?.stats);
             set({ user: profile });
         } catch (error) {
             console.error('Failed to refresh profile:', error);

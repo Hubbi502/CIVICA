@@ -182,6 +182,20 @@ export const translations: Record<Language, Record<string, string>> = {
     selectLocation: "Pilih Lokasi",
     selectInterests: "Pilih Minat",
     selectPersona: "Pilih Persona",
+
+    // About
+    aboutDescription: "CIVICA adalah platform yang menghubungkan warga dengan pemerintah dan sesama warga untuk menciptakan lingkungan yang lebih baik. Laporkan masalah, bagikan informasi, dan berkontribusi nyata.",
+    ourMission: "Misi Kami",
+    missionText: "Membangun komunitas yang peduli dan responsif melalui teknologi yang transparan dan kolaboratif.",
+    features: "Fitur Utama",
+    featureReportTitle: "Pelaporan Cepat",
+    featureReportDesc: "Laporkan masalah infrastruktur dan sosial dengan mudah.",
+    featureComTitle: "Komunitas Aktif",
+    featureComDesc: "Terhubung dengan warga lain dan berdiskusi.",
+    featureGamTitle: "Gamifikasi",
+    featureGamDesc: "Dapatkan poin dan lencana atas kontribusi Anda.",
+    version: "Versi",
+    copyright: "© 2024 CIVICA Team. Hak Cipta Dilindungi.",
   },
   en: {
     // Settings
@@ -363,5 +377,19 @@ export const translations: Record<Language, Record<string, string>> = {
     selectLocation: "Select Location",
     selectInterests: "Select Interests",
     selectPersona: "Select Persona",
+
+    // About
+    aboutDescription: "CIVICA is a platform connecting citizens with government and fellow citizens to create a better environment. Report issues, share information, and make real contributions.",
+    ourMission: "Our Mission",
+    missionText: "Building a caring and responsive community through transparent and collaborative technology.",
+    features: "Key Features",
+    featureReportTitle: "Quick Reporting",
+    featureReportDesc: "Report infrastructure and social issues easily.",
+    featureComTitle: "Active Community",
+    featureComDesc: "Connect with neighbors and discuss local topics.",
+    featureGamTitle: "Gamification",
+    featureGamDesc: "Earn points and badges for your contributions.",
+    version: "Version",
+    copyright: "© 2024 CIVICA Team. All Rights Reserved.",
   },
 };
