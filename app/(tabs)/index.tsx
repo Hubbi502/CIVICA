@@ -1,6 +1,6 @@
 import FilterBar from '@/components/feed/FilterBar';
 import PostCard from '@/components/feed/PostCard';
-import { Brand, Colors, FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
+import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { db } from '@/FirebaseConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -16,22 +16,22 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { Bell, MapPin, Plus, Search } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Bell, MapPin, Plus, Search, X } from 'lucide-react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
   const { user } = useAuthStore();
   const { t } = useTranslation();
 
@@ -41,6 +41,24 @@ export default function HomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [upvotedPosts, setUpvotedPosts] = useState<Set<string>>(new Set());
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Filter posts based on search query
+  const filteredPosts = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return posts;
+    }
+    const query = searchQuery.toLowerCase().trim();
+    return posts.filter(post =>
+      post.content.toLowerCase().includes(query) ||
+      post.authorName.toLowerCase().includes(query) ||
+      post.location?.address?.toLowerCase().includes(query) ||
+      post.location?.district?.toLowerCase().includes(query) ||
+      post.classification?.tags?.some(tag => tag.toLowerCase().includes(query)) ||
+      post.classification?.keywords?.some(keyword => keyword.toLowerCase().includes(query))
+    );
+  }, [posts, searchQuery]);
 
   const buildQuery = useCallback(() => {
     const postsRef = collection(db, 'posts');
@@ -183,51 +201,100 @@ export default function HomeScreen() {
     setSavedPosts(newSaved);
   };
 
-  const renderHeader = () => (
-    <View style={[styles.header, { backgroundColor: colors.background }]}>
-      <View style={styles.headerTop}>
-        <View style={styles.headerLeft}>
-          <View style={styles.locationRow}>
-            <MapPin size={16} color={Brand.primary} />
-            <Text style={[styles.locationText, { color: colors.text }]}>
-              {user?.location?.district || t('location')}
+  const headerComponent = useMemo(() => {
+    const themeColors = Colors[colorScheme];
+    return (
+      <View style={[styles.header, { backgroundColor: themeColors.background }]}>
+        <View style={styles.headerTop}>
+          {showSearch ? (
+            <View style={styles.searchContainer}>
+              <View style={[styles.searchInputContainer, { backgroundColor: themeColors.surface }]}>
+                <Search size={18} color={themeColors.textSecondary} />
+                <TextInput
+                  style={[styles.searchInput, { color: themeColors.text }]}
+                  placeholder={t('searchPlaceholder')}
+                  placeholderTextColor={themeColors.textSecondary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                  returnKeyType="search"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <X size={18} color={themeColors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <TouchableOpacity
+                style={[styles.cancelButton]}
+                onPress={() => {
+                  setShowSearch(false);
+                  setSearchQuery('');
+                }}
+              >
+                <Text style={[styles.cancelText, { color: Brand.primary }]}>
+                  {t('cancel')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View style={styles.headerLeft}>
+                <View style={styles.locationRow}>
+                  <MapPin size={16} color={Brand.primary} />
+                  <Text style={[styles.locationText, { color: themeColors.text }]}>
+                    {user?.location?.district || t('location')}
+                  </Text>
+                </View>
+                <Text style={[styles.welcomeText, { color: themeColors.textSecondary }]}>
+                  {t('hello')}, {user?.displayName?.split(' ')[0] || 'Civican'}! 👋
+                </Text>
+              </View>
+
+              <View style={styles.headerRight}>
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: themeColors.surface }]}
+                  onPress={() => setShowSearch(true)}
+                >
+                  <Search size={20} color={themeColors.icon} />
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.iconButton, { backgroundColor: themeColors.surface }]}>
+                  <Bell size={20} color={themeColors.icon} />
+                  <View style={styles.notificationBadge} />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+
+        {searchQuery.trim() && (
+          <View style={styles.searchResultInfo}>
+            <Text style={[styles.searchResultText, { color: themeColors.textSecondary }]}>
+              {filteredPosts.length} {t('resultsFound')} "{searchQuery}"
             </Text>
           </View>
-          <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>
-            {t('hello')}, {user?.displayName?.split(' ')[0] || 'Civican'}! 👋
-          </Text>
-        </View>
+        )}
 
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.surface }]}>
-            <Search size={20} color={colors.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.surface }]}>
-            <Bell size={20} color={colors.icon} />
-            <View style={styles.notificationBadge} />
-          </TouchableOpacity>
-        </View>
+        <FilterBar filters={filters} onFilterChange={setFilters} />
       </View>
-
-      <FilterBar filters={filters} onFilterChange={setFilters} />
-    </View>
-  );
+    );
+  }, [showSearch, searchQuery, colorScheme, user, t, filteredPosts.length, filters]);
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>
+      <Text style={[styles.emptyTitle, { color: Colors[colorScheme].text }]}>
         {t('noPosts')}
       </Text>
-      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+      <Text style={[styles.emptyText, { color: Colors[colorScheme].textSecondary }]}>
         {t('beFirst')}
       </Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme].background }]} edges={['top']}>
       <FlatList
-        data={posts}
+        data={filteredPosts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <PostCard
@@ -238,7 +305,7 @@ export default function HomeScreen() {
             isSaved={savedPosts.has(item.id)}
           />
         )}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={headerComponent}
         ListEmptyComponent={!isLoading ? renderEmpty : null}
         refreshControl={
           <RefreshControl
@@ -248,13 +315,13 @@ export default function HomeScreen() {
             tintColor={Brand.primary}
           />
         }
-        style={{ backgroundColor: colors.background }}
-        contentContainerStyle={[styles.listContent, { backgroundColor: colors.background }]}
+        style={{ backgroundColor: Colors[colorScheme].background }}
+        contentContainerStyle={[styles.listContent, { backgroundColor: Colors[colorScheme].background }]}
         showsVerticalScrollIndicator={false}
       />
 
       {isLoading && posts.length === 0 && (
-        <View style={[styles.loadingOverlay, { backgroundColor: colors.background }]}>
+        <View style={[styles.loadingOverlay, { backgroundColor: Colors[colorScheme].background }]}>
           <ActivityIndicator size="large" color={Brand.primary} />
         </View>
       )}
@@ -337,13 +404,48 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSize.md,
     textAlign: 'center',
-    },
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.lg,
+    gap: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: FontSize.md,
+    paddingVertical: 4,
+  },
+  cancelButton: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  cancelText: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.medium,
+  },
+  searchResultInfo: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
+  searchResultText: {
+    fontSize: FontSize.sm,
+  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255, 0.8)',
-    },
+  },
   fab: {
     position: 'absolute',
     right: Spacing.lg,
