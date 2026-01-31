@@ -37,6 +37,7 @@ import {
     Modal,
     Platform,
     ScrollView,
+    Share,
     StyleSheet,
     Text,
     TextInput,
@@ -364,6 +365,38 @@ export default function PostDetailScreen() {
         setEditCommentContent('');
     };
 
+    const handleShare = async () => {
+        try {
+            const deepLink = `civica://post/${postId}`;
+            const message = `Lihat postingan ini di CIVICA!\n\n${deepLink}`;
+
+            // On iOS, passing a remote image URL to 'url' often allows sharing the image file (system downloads it).
+            // The 'message' will be the caption containing the deep link.
+            // On Android, sharing remote files requires downloading them first (e.g. via expo-file-system) 
+            // which adds complexity. For now, we share the deep link message.
+            const imageUrl = post?.media && post.media.length > 0 ? post.media[0].url : undefined;
+
+            const shareOptions: any = {
+                message: message,
+                title: 'Bagikan Postingan CIVICA'
+            };
+
+            if (Platform.OS === 'ios' && imageUrl) {
+                shareOptions.url = imageUrl;
+            }
+
+            // Note: On Android, if we pass imageUrl as 'url', it often just appends the link.
+            // Since the user explicitly requested NOT to show the https link, we omit 'url' on Android
+            // and rely on the message. Note that 'civica://' links may not generate a thumbnail 
+            // on some Android apps without the image file being shared as a binary.
+
+            await Share.share(shareOptions);
+
+        } catch (error) {
+            Alert.alert('Error', 'Gagal membagikan postingan');
+        }
+    };
+
     const handleReportCommentAction = async () => {
         if (activeCommentId) {
             try {
@@ -640,7 +673,7 @@ export default function PostDetailScreen() {
                             fill={isSaved ? Brand.primary : 'transparent'}
                         />
                     </TouchableOpacity>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={handleShare}>
                         <Share2 size={24} color={colors.icon} />
                     </TouchableOpacity>
                 </View>
@@ -1550,5 +1583,8 @@ const styles = StyleSheet.create({
     editBtnText: {
         fontSize: FontSize.sm,
         fontWeight: FontWeight.medium,
+    },
+    urlContainer: {
+        marginBottom: Spacing.lg,
     },
 });
