@@ -12,30 +12,27 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTranslation } from "@/hooks/useTranslation";
 import { uploadAvatar } from "@/services/storage";
 import { useAuthStore } from "@/stores/authStore";
+import { LEVEL_CONFIG } from "@/services/gamification";
 import * as ImagePicker from 'expo-image-picker';
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   Award,
-  Bell,
   Camera,
   CheckCircle,
   ChevronRight,
   FileText,
   Flame,
   Handshake,
-  HelpCircle,
   LogOut,
   MapPin,
-  Moon,
   PenLine,
   Settings,
-  Shield,
   ShieldCheck,
   Star,
   ThumbsUp,
-  Trophy,
+  Trophy
 } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -69,31 +66,30 @@ const BADGES = [
   { id: "6", name: "Streak 7", Icon: Flame, color: "#EF4444", unlocked: false },
 ];
 
-const LEVEL_REQUIREMENTS = {
-  bronze: { min: 0, max: 100, label: "Perunggu" },
-  silver: { min: 100, max: 500, label: "Perak" },
-  gold: { min: 500, max: 2000, label: "Emas" },
-  diamond: { min: 2000, max: 10000, label: "Berlian" },
-};
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const { user, signOut, updateProfile } = useAuthStore();
+  const { user, signOut, updateProfile, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
   const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [])
+  );
+
   const stats = user?.stats || {
-    totalReports: 12,
-    totalUpvotes: 156,
-    resolvedIssues: 5,
-    points: 245,
-    level: "silver" as const,
+    totalReports: 0,
+    totalUpvotes: 0,
+    resolvedIssues: 0,
+    points: 0,
+    level: "bronze" as const,
   };
 
-  const levelInfo = LEVEL_REQUIREMENTS[stats.level];
-  const progress =
-    ((stats.points - levelInfo.min) / (levelInfo.max - levelInfo.min)) * 100;
+  const levelInfo = LEVEL_CONFIG[stats.level];
+  const progress = Math.min((stats.points / levelInfo.target) * 100, 100);
 
   const handleSignOut = async () => {
     try {
@@ -244,7 +240,7 @@ export default function ProfileScreen() {
               <Text
                 style={[styles.pointsText, { color: colors.textSecondary }]}
               >
-                {stats.points} / {levelInfo.max} pts
+                {stats.points} / {levelInfo.target} pts
               </Text>
             </View>
             <View

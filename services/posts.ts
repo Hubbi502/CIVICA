@@ -20,6 +20,7 @@ import {
     updateDoc,
     where,
 } from 'firebase/firestore';
+import { POINTS_PER_UPVOTE, updateUserPoints } from './gamification';
 
 const POSTS_COLLECTION = 'posts';
 const POSTS_PER_PAGE = 20;
@@ -253,6 +254,8 @@ export const toggleUpvote = async (
                 upvotedBy: arrayRemove(userId),
                 'engagement.upvotes': increment(-1),
             });
+            // Decrease author points
+            await updateUserPoints(post.authorId, -POINTS_PER_UPVOTE);
             return false;
         } else {
             // Add upvote and remove downvote if exists
@@ -267,6 +270,8 @@ export const toggleUpvote = async (
             }
 
             await updateDoc(docRef, updates);
+            // Increase author points
+            await updateUserPoints(post.authorId, POINTS_PER_UPVOTE);
             return true;
         }
     } catch (error) {
@@ -312,6 +317,12 @@ export const toggleDownvote = async (
             }
 
             await updateDoc(docRef, updates);
+
+            // If an upvote was removed, decrease author points
+            if (hasUpvoted) {
+                await updateUserPoints(post.authorId, -POINTS_PER_UPVOTE);
+            }
+
             return true;
         }
     } catch (error) {
