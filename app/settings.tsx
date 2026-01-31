@@ -9,11 +9,13 @@ import {
     Check,
     ChevronRight,
     Globe,
+    HelpCircle,
     Info,
     Lock,
     Moon,
+    Shield,
     Smartphone,
-    User
+    User,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -117,58 +119,68 @@ export default function SettingsScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-                <SectionHeader title={t('account')} />
+                <SectionHeader title={t('account') || 'AKUN'} />
                 <View style={styles.settingsGroup}>
                     <SettingsItem
                         icon={User}
-                        label={t('editProfile')}
-                        onPress={() => { }}
+                        label={t('editProfile') || 'Edit Profil'}
+                        onPress={() => router.push('/edit-profile')}
                     />
                     <SettingsItem
                         icon={Lock}
-                        label={t('security')}
+                        label={t('security') || 'Keamanan'}
+                        onPress={() => router.push('/security')}
+                    />
+                    <SettingsItem
+                        icon={Shield}
+                        label={t('privacy') || 'Privasi'}
                         onPress={() => { }}
                     />
                 </View>
 
-                <SectionHeader title={t('preferences')} />
+                <SectionHeader title={t('preferences') || 'PREFERENSI'} />
                 <View style={styles.settingsGroup}>
                     <SettingsItem
                         icon={Bell}
-                        label={t('notifications')}
+                        label={t('notifications') || 'Notifikasi'}
                         showToggle
                         toggleValue={notifications}
                         onToggle={setNotifications}
                     />
                     <SettingsItem
                         icon={Moon}
-                        label={t('darkMode')}
+                        label={t('darkMode') || 'Mode Gelap'}
                         showToggle
                         toggleValue={darkMode}
                         onToggle={handleDarkModeToggle}
                     />
                     <SettingsItem
                         icon={Globe}
-                        label={t('language')}
+                        label={t('language') || 'Bahasa'}
                         value={getLanguageDisplayName(language)}
                         onPress={() => setLanguageModalVisible(true)}
                     />
                     <SettingsItem
                         icon={Smartphone}
-                        label={t('locationServices')}
+                        label={t('locationServices') || 'Layanan Lokasi'}
                         showToggle
                         toggleValue={locationServices}
                         onToggle={setLocationServices}
                     />
                 </View>
 
-                <SectionHeader title={t('support')} />
+                <SectionHeader title={t('support') || 'DUKUNGAN'} />
                 <View style={styles.settingsGroup}>
                     <SettingsItem
+                        icon={HelpCircle}
+                        label={t('helpCenter') || 'Pusat Bantuan'}
+                        onPress={() => { }}
+                    />
+                    <SettingsItem
                         icon={Info}
-                        label={t('aboutCivica')}
+                        label={t('aboutCivica') || 'Tentang CIVICA'}
                         value="v1.0.0"
-                        onPress={() => router.push('/about')}
+                        onPress={() => { }}
                     />
                 </View>
 

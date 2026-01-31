@@ -258,7 +258,10 @@ export default function HomeScreen() {
                 >
                   <Search size={20} color={themeColors.icon} />
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.iconButton, { backgroundColor: themeColors.surface }]}>
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: themeColors.surface }]}
+                  onPress={() => router.push('/notifications')}
+                >
                   <Bell size={20} color={themeColors.icon} />
                   <View style={styles.notificationBadge} />
                 </TouchableOpacity>
