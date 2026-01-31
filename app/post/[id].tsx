@@ -1,6 +1,8 @@
-import { Brand, Colors, FontSize, FontWeight, Radius, SeverityColors, Spacing, StatusColors } from '@/constants/theme';
+import { Brand, Colors, FontSize, FontWeight, Radius, SeverityColors, Spacing } from '@/constants/theme';
 import { db } from '@/FirebaseConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { deletePost } from '@/services/posts';
+import { useAuthStore } from '@/stores/authStore';
 import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -17,12 +19,17 @@ import {
     Eye,
     MapPin,
     MessageCircle,
+    MoreVertical,
     Share2,
+    X,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     Image,
+    Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -48,12 +55,15 @@ export default function PostDetailScreen() {
     const { id: postId } = useLocalSearchParams<{ id: string }>();
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const { user } = useAuthStore();
 
     const [post, setPost] = useState<PostDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isUpvoted, setIsUpvoted] = useState(false);
     const [isWatching, setIsWatching] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
+
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -101,7 +111,102 @@ export default function PostDetailScreen() {
         fetchPost();
     }, [postId]);
 
-    if (isLoading) {
+    const performDelete = async () => {
+        try {
+            setIsLoading(true);
+            await deletePost(postId);
+            setShowDeleteModal(false);
+            if (Platform.OS === 'web') {
+                router.navigate('/(tabs)');
+            } else {
+                Alert.alert('Berhasil', 'Post berhasil dihapus', [
+                    { text: 'OK', onPress: () => router.navigate('/(tabs)') }
+                ]);
+            }
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            Alert.alert('Error', 'Gagal menghapus post');
+            setIsLoading(false);
+            setShowDeleteModal(false);
+        }
+    };
+
+    const handleOptions = () => {
+        if (Platform.OS === 'web') {
+            // Simplified web menu for now, but using the modal for delete confirmation
+            const choice = window.confirm('Pilih aksi:\nOK untuk Hapus\nCancel untuk Batal');
+            if (choice) {
+                setShowDeleteModal(true);
+            }
+            return;
+        }
+
+        Alert.alert(
+            'Pilihan',
+            'Pilih aksi untuk post ini',
+            [
+                { text: 'Edit Post', onPress: () => Alert.alert('Info', 'Fitur Edit akan segera hadir!') },
+                { text: 'Hapus Post', onPress: () => setShowDeleteModal(true), style: 'destructive' },
+                { text: 'Batal', style: 'cancel' },
+            ]
+        );
+    };
+
+    const renderDeleteModal = () => {
+        return (
+            <Modal
+                visible={showDeleteModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDeleteModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHeaderLeft}>
+                                <AlertTriangle size={24} color={Brand.error || '#FF3B30'} />
+                                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                                    Hapus Post
+                                </Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
+                                <X size={24} color={colors.icon} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
+                            Apakah Anda yakin ingin menghapus post ini? Tindakan ini tidak dapat dibatalkan.
+                        </Text>
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={[styles.cancelButton, { borderColor: colors.border }]}
+                                onPress={() => setShowDeleteModal(false)}
+                            >
+                                <Text style={[styles.cancelButtonText, { color: colors.text }]}>
+                                    Batal
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.deleteButton, isLoading && styles.buttonDisabled]}
+                                onPress={performDelete}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <ActivityIndicator color="#FFFFFF" size="small" />
+                                ) : (
+                                    <Text style={styles.deleteButtonText}>Hapus</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    if (isLoading && !showDeleteModal) {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
                 <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -136,6 +241,8 @@ export default function PostDetailScreen() {
             </SafeAreaView>
         );
     }
+
+    const isAuthor = user?.id === post.authorId;
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -178,15 +285,10 @@ export default function PostDetailScreen() {
                             </View>
                         </View>
 
-                        {post.status && (
-                            <View style={[styles.statusBadge, { backgroundColor: StatusColors[post.status!] + '15' }]}>
-                                <CheckCircle size={14} color={StatusColors[post.status!]} />
-                                <Text style={[styles.statusText, { color: StatusColors[post.status!] }]}>
-                                    {post.status === 'verified' ? 'Terverifikasi' :
-                                        post.status === 'resolved' ? 'Selesai' :
-                                            post.status === 'closed' ? 'Ditutup' : 'Aktif'}
-                                </Text>
-                            </View>
+                        {isAuthor && (
+                            <TouchableOpacity onPress={handleOptions} style={styles.optionsButton}>
+                                <MoreVertical size={20} color={colors.textSecondary} />
+                            </TouchableOpacity>
                         )}
                     </View>
 
@@ -336,6 +438,8 @@ export default function PostDetailScreen() {
                     </Text>
                 </TouchableOpacity>
             </View>
+
+            {renderDeleteModal()}
         </SafeAreaView>
     );
 }
@@ -402,6 +506,10 @@ const styles = StyleSheet.create({
     metaText: {
         fontSize: FontSize.xs,
     },
+    optionsButton: {
+        padding: Spacing.xs,
+        marginLeft: Spacing.sm,
+    },
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -452,6 +560,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.sm,
         paddingVertical: 2,
         borderRadius: Radius.full,
+        gap: 4,
     },
     severityText: {
         fontSize: FontSize.xs,
@@ -589,5 +698,67 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: FontSize.md,
         textAlign: 'center',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        padding: Spacing.lg,
+    },
+    modalContent: {
+        borderRadius: Radius.xl,
+        padding: Spacing.xl,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.lg,
+    },
+    modalHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+    },
+    modalTitle: {
+        fontSize: FontSize.lg,
+        fontWeight: FontWeight.semibold,
+    },
+    modalMessage: {
+        fontSize: FontSize.md,
+        lineHeight: 24,
+        marginBottom: Spacing.xl,
+    },
+    modalActions: {
+        flexDirection: 'row',
+        gap: Spacing.md,
+    },
+    cancelButton: {
+        flex: 1,
+        paddingVertical: Spacing.md,
+        borderRadius: Radius.lg,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cancelButtonText: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.medium,
+    },
+    deleteButton: {
+        flex: 1,
+        backgroundColor: Brand.error || '#FF3B30',
+        paddingVertical: Spacing.md,
+        borderRadius: Radius.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    deleteButtonText: {
+        color: '#FFFFFF',
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.medium,
+    },
+    buttonDisabled: {
+        opacity: 0.5,
     },
 });
