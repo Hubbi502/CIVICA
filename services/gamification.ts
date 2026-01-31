@@ -61,3 +61,14 @@ export const updateUserPoints = async (userId: string, change: number) => {
         console.error('Error updating user points:', error);
     }
 };
+
+export const getBadgeStatus = (stats: UserStats) => {
+    return {
+        "1": stats.totalReports >= 1,       // Pemula
+        "2": stats.totalReports >= 5,       // Pelapor
+        "3": stats.resolvedIssues >= 1,     // Terverifikasi
+        "4": stats.totalUpvotes >= 10,      // Penolong
+        "5": stats.points >= 1000,          // Top 10 (Placeholder)
+        "6": false,                         // Streak 7 (Placeholder)
+    };
+};
