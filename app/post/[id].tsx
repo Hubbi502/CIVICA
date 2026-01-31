@@ -1,14 +1,8 @@
-import {
-  Brand,
-  Colors,
-  FontSize,
-  FontWeight,
-  Radius,
-  SeverityColors,
-  Spacing,
-} from "@/constants/theme";
-import { db } from "@/FirebaseConfig";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Brand, Colors, FontSize, FontWeight, Radius, SeverityColors, Spacing } from '@/constants/theme';
+import { db } from '@/FirebaseConfig';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import * as Clipboard from 'expo-clipboard';
+
 import {
   addComment,
   deleteComment,
@@ -97,12 +91,13 @@ export default function PostDetailScreen() {
   const [isWatching, setIsWatching] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showOptionsModal, setShowOptionsModal] = useState(false);
-  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editCommentContent, setEditCommentContent] = useState("");
-  const [showCommentOptionsModal, setShowCommentOptionsModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showOptionsModal, setShowOptionsModal] = useState(false);
+    const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+    const [editCommentContent, setEditCommentContent] = useState('');
+    const [showCommentOptionsModal, setShowCommentOptionsModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
   // Comments state - auto-open if navigated with openComment query param
   const [comments, setComments] = useState<Comment[]>([]);
@@ -111,12 +106,613 @@ export default function PostDetailScreen() {
   const [showComments, setShowComments] = useState(openComment === "true");
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
 
-  // Auto-scroll to comment input when openComment is true
-  useEffect(() => {
-    if (openComment === 'true' && !isLoading) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 300);
+    // Auto-scroll to comment input when openComment is true
+    useEffect(() => {
+        if (openComment === 'true' && !isLoading) {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 300);
+        }
+    }, [openComment, isLoading]);
+
+    // Toggle comments and scroll to bottom
+    const handleToggleComments = () => {
+        const newShowComments = !showComments;
+        setShowComments(newShowComments);
+        if (newShowComments) {
+            // Wait for the comments section to render, then scroll to bottom
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+        }
+    };
+
+    useEffect(() => {
+        const fetchPost = async () => {
+            if (!postId) return;
+
+            try {
+                setIsLoading(true);
+                const postRef = doc(db, 'posts', postId);
+                const postSnap = await getDoc(postRef);
+
+                if (postSnap.exists()) {
+                    const data = postSnap.data();
+                    const postData = {
+                        id: postSnap.id,
+                        authorId: data.authorId,
+                        authorName: data.authorName,
+                        authorAvatar: data.authorAvatar,
+                        isAnonymous: data.isAnonymous,
+                        content: data.content,
+                        media: data.media || [],
+                        location: data.location || { district: '', city: '', address: '' },
+                        type: data.type,
+                        classification: data.classification,
+                        engagement: data.engagement || { upvotes: 0, downvotes: 0, comments: 0, shares: 0, watchers: 0, views: 0 },
+                        upvotedBy: data.upvotedBy || [],
+                        downvotedBy: data.downvotedBy || [],
+                        watchedBy: data.watchedBy || [],
+                        createdAt: data.createdAt?.toDate() || new Date(),
+                        updatedAt: data.updatedAt?.toDate() || new Date(),
+                        status: data.status,
+                        severity: data.severity || data.classification?.severity,
+                        updates: (data.updates || []).map((u: any) => ({
+                            ...u,
+                            createdAt: u.createdAt?.toDate() || new Date(),
+                        })),
+                        verifiedCount: data.verifiedCount || 0,
+                    } as PostDetail;
+
+                    setPost(postData);
+
+                    // Set initial vote/watch states based on current user
+                    if (user?.id) {
+                        setIsUpvoted(postData.upvotedBy.includes(user.id));
+                        setIsDownvoted(postData.downvotedBy?.includes(user.id) || false);
+                        setIsWatching(postData.watchedBy.includes(user.id));
+                    }
+
+                    // Fetch comments
+                    const fetchedComments = await getComments(postId);
+                    setComments(fetchedComments);
+                }
+            } catch (error) {
+                console.error('Error fetching post:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchPost();
+    }, [postId, user?.id]);
+
+    const performDelete = async () => {
+        try {
+            setIsLoading(true);
+            await deletePost(postId);
+            setShowDeleteModal(false);
+            if (Platform.OS === 'web') {
+                router.navigate('/(tabs)');
+            } else {
+                Alert.alert('Berhasil', 'Post berhasil dihapus', [
+                    { text: 'OK', onPress: () => router.navigate('/(tabs)') }
+                ]);
+            }
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            Alert.alert('Error', 'Gagal menghapus post');
+            setIsLoading(false);
+            setShowDeleteModal(false);
+        }
+    };
+
+    const handleOptions = () => {
+        setShowOptionsModal(true);
+    };
+
+    const handleUpvote = async () => {
+        if (!user?.id || !postId) return;
+        try {
+            const nowUpvoted = await toggleUpvote(postId, user.id);
+            setIsUpvoted(nowUpvoted);
+            if (nowUpvoted) setIsDownvoted(false); // Mutually exclusive
+            // Update local engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    upvotes: nowUpvoted ? prev.engagement.upvotes + 1 : prev.engagement.upvotes - 1,
+                    downvotes: nowUpvoted && isDownvoted ? prev.engagement.downvotes - 1 : prev.engagement.downvotes,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error toggling upvote:', error);
+        }
+    };
+
+    const handleDownvote = async () => {
+        if (!user?.id || !postId) return;
+        try {
+            const nowDownvoted = await toggleDownvote(postId, user.id);
+            setIsDownvoted(nowDownvoted);
+            if (nowDownvoted) setIsUpvoted(false); // Mutually exclusive
+            // Update local engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    downvotes: nowDownvoted ? (prev.engagement.downvotes || 0) + 1 : (prev.engagement.downvotes || 0) - 1,
+                    upvotes: nowDownvoted && isUpvoted ? prev.engagement.upvotes - 1 : prev.engagement.upvotes,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error toggling downvote:', error);
+        }
+    };
+
+    const handleWatch = async () => {
+        if (!user?.id || !postId) return;
+        try {
+            const nowWatching = await toggleWatch(postId, user.id);
+            setIsWatching(nowWatching);
+            // Update local engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    watchers: nowWatching ? prev.engagement.watchers + 1 : prev.engagement.watchers - 1,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error toggling watch:', error);
+        }
+    };
+
+    const handleLikeComment = async (commentId: string) => {
+        if (!user?.id) return;
+
+        // Optimistic update
+        setComments(prevComments => prevComments.map(c => {
+            if (c.id === commentId) {
+                const isLiked = c.likedBy.includes(user.id);
+                return {
+                    ...c,
+                    likes: isLiked ? c.likes - 1 : c.likes + 1,
+                    likedBy: isLiked
+                        ? c.likedBy.filter(id => id !== user.id)
+                        : [...c.likedBy, user.id]
+                };
+            }
+            return c;
+        }));
+
+        try {
+            await toggleCommentLike(commentId, user.id);
+        } catch (error) {
+            console.error('Error toggling like:', error);
+            // Revert logic could go here, or just refresh
+            if (postId) {
+                const fetchedComments = await getComments(postId);
+                setComments(fetchedComments);
+            }
+        }
+    };
+
+    const handleAddComment = async () => {
+        if (!user?.id || !postId || !newComment.trim()) return;
+        try {
+            setIsSubmittingComment(true);
+            await addComment(
+                postId,
+                user.id,
+                user.displayName || 'User',
+                user.avatarUrl,
+                newComment.trim(),
+                replyingTo?.id // Pass parentId if replying
+            );
+            setNewComment('');
+            setReplyingTo(null); // Clear reply state
+            // Refresh comments
+            const fetchedComments = await getComments(postId);
+            setComments(fetchedComments);
+            // Update engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    comments: prev.engagement.comments + 1,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            Alert.alert('Error', 'Gagal menambahkan komentar');
+        } finally {
+            setIsSubmittingComment(false);
+        }
+    };
+
+    const handleReply = (comment: Comment) => {
+        setReplyingTo(comment);
+        setShowComments(true);
+        setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+    };
+
+    const cancelReply = () => {
+        setReplyingTo(null);
+    };
+
+    const isCommentEditable = (createdAt: Date) => {
+        const now = new Date();
+        const diffInMinutes = (now.getTime() - createdAt.getTime()) / 1000 / 60;
+        return diffInMinutes <= 3;
+    };
+
+    const handleCommentOptions = (comment: Comment) => {
+        setActiveCommentId(comment.id);
+        setShowCommentOptionsModal(true);
+    };
+
+    const handleEditComment = () => {
+        const comment = comments.find(c => c.id === activeCommentId);
+        if (comment) {
+            setEditingCommentId(comment.id);
+            setEditCommentContent(comment.content);
+        }
+        setShowCommentOptionsModal(false);
+    };
+
+    const handleSaveEditComment = async () => {
+        if (!editingCommentId || !editCommentContent.trim()) return;
+
+        try {
+            await updateComment(editingCommentId, editCommentContent.trim());
+            setComments(prev => prev.map(c =>
+                c.id === editingCommentId ? { ...c, content: editCommentContent.trim() } : c
+            ));
+            setEditingCommentId(null);
+            setEditCommentContent('');
+        } catch (error) {
+            Alert.alert('Error', 'Gagal mengedit komentar');
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCommentId(null);
+        setEditCommentContent('');
+    };
+
+    const handleShare = () => {
+        setShowShareModal(true);
+    };
+
+    const handleCopyLink = async () => {
+        if (!postId) return;
+        const deepLink = `civica://post/${postId}`;
+        const message = `Lihat postingan ini di CIVICA! ${deepLink}`;
+
+        await Clipboard.setStringAsync(message);
+        setShowShareModal(false);
+
+        if (Platform.OS === 'android') {
+            Alert.alert('Berhasil', 'Tautan disalin ke clipboard');
+        } else {
+            Alert.alert('Berhasil', 'Tautan disalin');
+        }
+    };
+
+    const handleNativeShare = async () => {
+        try {
+            const deepLink = `civica://post/${postId}`;
+            const message = `Lihat postingan ini di CIVICA!\n\n${deepLink}`;
+            const imageUrl = post?.media && post.media.length > 0 ? post.media[0].url : undefined;
+
+            const content: any = { message, title: 'Bagikan Postingan CIVICA' };
+            const options: any = { dialogTitle: 'Bagikan Postingan CIVICA' };
+
+            if (Platform.OS === 'ios' && imageUrl) content.url = imageUrl;
+
+            await Share.share(content, options);
+            setShowShareModal(false);
+        } catch (error) {
+            Alert.alert('Error', 'Gagal membagikan postingan');
+        }
+    };
+
+    const handleReportCommentAction = async () => {
+        if (activeCommentId) {
+            try {
+                await reportComment(activeCommentId, 'Reported by user');
+                Alert.alert('Info', 'Laporan diterima. Kami akan meninjau komentar ini.');
+            } catch (error) {
+                Alert.alert('Error', 'Gagal melaporkan komentar');
+            }
+        }
+        setShowCommentOptionsModal(false);
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+        if (!postId) return;
+        try {
+            await deleteComment(commentId, postId);
+            setComments(prev => prev.filter(c => c.id !== commentId));
+            // Update engagement count
+            setPost(prev => prev ? {
+                ...prev,
+                engagement: {
+                    ...prev.engagement,
+                    comments: prev.engagement.comments - 1,
+                }
+            } : null);
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+        }
+    };
+
+    const renderCommentOptionsModal = () => {
+        const comment = comments.find(c => c.id === activeCommentId);
+        if (!comment) return null;
+
+        const isCommentAuthor = user?.id === comment.authorId;
+        const canEdit = isCommentAuthor && isCommentEditable(comment.createdAt);
+
+        return (
+            <Modal
+                visible={showCommentOptionsModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowCommentOptionsModal(false)}
+            >
+                <View style={[styles.bottomSheetOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <TouchableOpacity
+                        style={styles.overlayPressable}
+                        onPress={() => setShowCommentOptionsModal(false)}
+                    />
+                    <View style={[styles.bottomSheetContent, { backgroundColor: colors.surface }]}>
+                        <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+
+                        <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
+                            Pilihan Komentar
+                        </Text>
+
+                        {canEdit && (
+                            <TouchableOpacity
+                                style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                                onPress={handleEditComment}
+                            >
+                                <Edit2 size={20} color={colors.text} />
+                                <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                    Edit Komentar
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {!isCommentAuthor && (
+                            <TouchableOpacity
+                                style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                                onPress={handleReportCommentAction}
+                            >
+                                <AlertTriangle size={20} color={Brand.warning || '#F59E0B'} />
+                                <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                    Laporkan Komentar
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {isCommentAuthor && (
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    setShowCommentOptionsModal(false);
+                                    handleDeleteComment(comment.id);
+                                }}
+                            >
+                                <Trash2 size={20} color={Brand.error || '#FF3B30'} />
+                                <Text style={[styles.menuItemText, { color: Brand.error || '#FF3B30' }]}>
+                                    Hapus Komentar
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
+                            onPress={() => setShowCommentOptionsModal(false)}
+                        >
+                            <Text style={[styles.closeButtonText, { color: colors.text }]}>
+                                Batal
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    const renderDeleteModal = () => {
+        return (
+            <Modal
+                visible={showDeleteModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDeleteModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHeaderLeft}>
+                                <AlertTriangle size={24} color={Brand.error || '#FF3B30'} />
+                                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                                    Hapus Post
+                                </Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
+                                <X size={24} color={colors.icon} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
+                            Apakah Anda yakin ingin menghapus post ini? Tindakan ini tidak dapat dibatalkan.
+                        </Text>
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={[styles.cancelButton, { borderColor: colors.border }]}
+                                onPress={() => setShowDeleteModal(false)}
+                            >
+                                <Text style={[styles.cancelButtonText, { color: colors.text }]}>
+                                    Batal
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.deleteButton, isLoading && styles.buttonDisabled]}
+                                onPress={performDelete}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <ActivityIndicator color="#FFFFFF" size="small" />
+                                ) : (
+                                    <Text style={styles.deleteButtonText}>Hapus</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    const renderOptionsModal = () => {
+        return (
+            <Modal
+                visible={showOptionsModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowOptionsModal(false)}
+            >
+                <View style={[styles.bottomSheetOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <TouchableOpacity
+                        style={styles.overlayPressable}
+                        onPress={() => setShowOptionsModal(false)}
+                    />
+                    <View style={[styles.bottomSheetContent, { backgroundColor: colors.surface }]}>
+                        <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+
+                        <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
+                            Pilihan Post
+                        </Text>
+
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                            onPress={() => {
+                                setShowOptionsModal(false);
+                                router.push(`/post/edit/${postId}`);
+                            }}
+                        >
+                            <Edit2 size={20} color={colors.text} />
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                Edit Post
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => {
+                                setShowOptionsModal(false);
+                                setTimeout(() => setShowDeleteModal(true), 300); // Small delay for animation
+                            }}
+                        >
+                            <Trash2 size={20} color={Brand.error || '#FF3B30'} />
+                            <Text style={[styles.menuItemText, { color: Brand.error || '#FF3B30' }]}>
+                                Hapus Post
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
+                            onPress={() => setShowOptionsModal(false)}
+                        >
+                            <Text style={[styles.closeButtonText, { color: colors.text }]}>
+                                Batal
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    const renderShareModal = () => {
+        return (
+            <Modal
+                visible={showShareModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowShareModal(false)}
+            >
+                <View style={[styles.bottomSheetOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <TouchableOpacity
+                        style={styles.overlayPressable}
+                        onPress={() => setShowShareModal(false)}
+                    />
+                    <View style={[styles.bottomSheetContent, { backgroundColor: colors.surface }]}>
+                        <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+
+                        <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
+                            Bagikan
+                        </Text>
+
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                            onPress={handleCopyLink}
+                        >
+                            <Link size={20} color={colors.text} />
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                Salin Tautan
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                            onPress={handleNativeShare}
+                        >
+                            <Share2 size={20} color={colors.text} />
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                Opsi Lainnya...
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
+                            onPress={() => setShowShareModal(false)}
+                        >
+                            <Text style={[styles.closeButtonText, { color: colors.text }]}>
+                                Batal
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    if (isLoading && !showDeleteModal && !showOptionsModal) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+                <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <ArrowLeft size={24} color={colors.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.headerTitle, { color: colors.text }]}>Detail Laporan</Text>
+                    <View style={styles.headerActions} />
+                </View>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Brand.primary} />
+                </View>
+            </SafeAreaView>
+        );
     }
   }, [openComment, isLoading]);
 
@@ -1511,11 +2107,43 @@ export default function PostDetailScreen() {
         </View>
       </KeyboardAvoidingView>
 
+<<<<<<< HEAD
       {renderDeleteModal()}
       {renderOptionsModal()}
       {renderCommentOptionsModal()}
     </SafeAreaView>
   );
+=======
+                {/* Comment Button */}
+                <TouchableOpacity
+                    style={[styles.actionButton, showComments && { backgroundColor: Brand.primary + '15' }]}
+                    onPress={handleToggleComments}
+                >
+                    <MessageCircle size={20} color={showComments ? Brand.primary : colors.text} />
+                    <Text style={[styles.actionButtonText, { color: showComments ? Brand.primary : colors.text }]}>
+                        {post.engagement.comments}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Watch Button */}
+                <TouchableOpacity
+                    style={[styles.watchButton, isWatching && { backgroundColor: Brand.success }]}
+                    onPress={handleWatch}
+                >
+                    <Eye size={18} color={isWatching ? '#FFFFFF' : Brand.success} />
+                    <Text style={[styles.watchButtonText, { color: isWatching ? '#FFFFFF' : Brand.success }]}>
+                        {isWatching ? 'Mengikuti' : 'Ikuti'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            {renderCommentOptionsModal()}
+            {renderOptionsModal()}
+            {renderDeleteModal()}
+            {renderShareModal()}
+        </SafeAreaView>
+    );
+>>>>>>> 293d6c45ef8751fc39f38fec4db61e5f35dfa2b4
 }
 
 const styles = StyleSheet.create({
