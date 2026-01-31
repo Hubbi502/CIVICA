@@ -57,7 +57,7 @@ Respond in valid JSON format only:
 `;
 
         // Build multimodal content array
-        const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+        const messageContent: Array<{ type: string; text?: string; imageUrl?: { url: string } }> = [
             { type: 'text', text: prompt }
         ];
 
@@ -67,7 +67,7 @@ Respond in valid JSON format only:
                 const base64Image = await imageToBase64(imageUri);
                 messageContent.push({
                     type: 'image_url',
-                    image_url: { url: base64Image }
+                    imageUrl: { url: base64Image }
                 });
             }
         }
@@ -148,7 +148,7 @@ Respond in JSON:
                         },
                         {
                             type: 'image_url',
-                            image_url: { url: base64Image }
+                            imageUrl: { url: base64Image }
                         }
                     ]
                 },
