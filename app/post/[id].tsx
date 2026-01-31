@@ -216,7 +216,7 @@ export default function PostDetailScreen() {
                             style={[styles.menuItem, { borderBottomColor: colors.border }]}
                             onPress={() => {
                                 setShowOptionsModal(false);
-                                Alert.alert('Info', 'Fitur Edit akan segera hadir!');
+                                router.push(`/post/edit/${postId}`);
                             }}
                         >
                             <Edit2 size={20} color={colors.text} />
