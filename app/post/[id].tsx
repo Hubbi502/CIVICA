@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Comment, Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
+import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import {
@@ -21,6 +22,7 @@ import {
     Edit2,
     Eye,
     Heart,
+    Link,
     MapPin,
     MessageCircle,
     MoreVertical,
@@ -79,6 +81,7 @@ export default function PostDetailScreen() {
     const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
     const [editCommentContent, setEditCommentContent] = useState('');
     const [showCommentOptionsModal, setShowCommentOptionsModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     // Comments state - auto-open if navigated with openComment query param
     const [comments, setComments] = useState<Comment[]>([]);
@@ -365,33 +368,39 @@ export default function PostDetailScreen() {
         setEditCommentContent('');
     };
 
-    const handleShare = async () => {
-        // Debug: Confirm function is called
-        // Alert.alert('Debug', 'Share button pressed'); 
+    const handleShare = () => {
+        setShowShareModal(true);
+    };
 
+    const handleCopyLink = async () => {
+        if (!postId) return;
+        const deepLink = `civica://post/${postId}`;
+        const message = `Lihat postingan ini di CIVICA! ${deepLink}`;
+
+        await Clipboard.setStringAsync(message);
+        setShowShareModal(false);
+
+        if (Platform.OS === 'android') {
+            Alert.alert('Berhasil', 'Tautan disalin ke clipboard');
+        } else {
+            Alert.alert('Berhasil', 'Tautan disalin');
+        }
+    };
+
+    const handleNativeShare = async () => {
         try {
             const deepLink = `civica://post/${postId}`;
             const message = `Lihat postingan ini di CIVICA!\n\n${deepLink}`;
-
             const imageUrl = post?.media && post.media.length > 0 ? post.media[0].url : undefined;
 
-            const content: any = {
-                message: message,
-                title: 'Bagikan Postingan CIVICA' // Title for email subjects etc
-            };
+            const content: any = { message, title: 'Bagikan Postingan CIVICA' };
+            const options: any = { dialogTitle: 'Bagikan Postingan CIVICA' };
 
-            const options: any = {
-                dialogTitle: 'Bagikan Postingan CIVICA' // Android only: Title of the share dialog
-            };
-
-            if (Platform.OS === 'ios' && imageUrl) {
-                content.url = imageUrl;
-            }
+            if (Platform.OS === 'ios' && imageUrl) content.url = imageUrl;
 
             await Share.share(content, options);
-
+            setShowShareModal(false);
         } catch (error) {
-            console.error('Share error:', error);
             Alert.alert('Error', 'Gagal membagikan postingan');
         }
     };
@@ -608,6 +617,60 @@ export default function PostDetailScreen() {
                         <TouchableOpacity
                             style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
                             onPress={() => setShowOptionsModal(false)}
+                        >
+                            <Text style={[styles.closeButtonText, { color: colors.text }]}>
+                                Batal
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    const renderShareModal = () => {
+        return (
+            <Modal
+                visible={showShareModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowShareModal(false)}
+            >
+                <View style={[styles.bottomSheetOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <TouchableOpacity
+                        style={styles.overlayPressable}
+                        onPress={() => setShowShareModal(false)}
+                    />
+                    <View style={[styles.bottomSheetContent, { backgroundColor: colors.surface }]}>
+                        <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+
+                        <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
+                            Bagikan
+                        </Text>
+
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                            onPress={handleCopyLink}
+                        >
+                            <Link size={20} color={colors.text} />
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                Salin Tautan
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomColor: colors.border }]}
+                            onPress={handleNativeShare}
+                        >
+                            <Share2 size={20} color={colors.text} />
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>
+                                Opsi Lainnya...
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
+                            onPress={() => setShowShareModal(false)}
                         >
                             <Text style={[styles.closeButtonText, { color: colors.text }]}>
                                 Batal
@@ -1042,9 +1105,10 @@ export default function PostDetailScreen() {
                 </TouchableOpacity>
             </View>
 
-            {renderDeleteModal()}
-            {renderOptionsModal()}
             {renderCommentOptionsModal()}
+            {renderOptionsModal()}
+            {renderDeleteModal()}
+            {renderShareModal()}
         </SafeAreaView>
     );
 }
