@@ -1,3 +1,4 @@
+import { GeneralSubCategories } from '@/constants/categories';
 import { Brand, CategoryColors, Colors, FontSize, FontWeight, Radius, SeverityColors, Shadows, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { classifyPost } from '@/services/openRouter';
@@ -16,8 +17,8 @@ import {
     EyeOff,
     ImageIcon,
     MapPin,
+    MessageCircle,
     Newspaper,
-    ShoppingBag,
     Sparkles,
     X
 } from 'lucide-react-native';
@@ -38,10 +39,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const TYPE_CONFIG: Record<PostType, { icon: React.ComponentType<any>; label: string; color: string }> = {
-    REPORT: { icon: AlertTriangle, label: 'Laporan', color: CategoryColors.report },
-    PROMOTION: { icon: ShoppingBag, label: 'Promosi', color: CategoryColors.promotion },
+    GENERAL: { icon: MessageCircle, label: 'Umum', color: CategoryColors.general },
     NEWS: { icon: Newspaper, label: 'Berita', color: CategoryColors.news },
-    GENERAL: { icon: Sparkles, label: 'Umum', color: CategoryColors.general },
+    REPORT: { icon: AlertTriangle, label: 'Laporan', color: CategoryColors.report },
 };
 
 export default function CreatePostScreen() {
@@ -200,6 +200,25 @@ export default function CreatePostScreen() {
                                 </Text>
                             </View>
                         </View>
+
+                        {classification.category === 'GENERAL' && classification.subCategory && (
+                            <View style={styles.infoRow}>
+                                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                    Tagline:
+                                </Text>
+                                <View style={[
+                                    styles.severityBadge,
+                                    { backgroundColor: GeneralSubCategories[classification.subCategory].color + '15' }
+                                ]}>
+                                    <Text style={[
+                                        styles.severityText,
+                                        { color: GeneralSubCategories[classification.subCategory].color }
+                                    ]}>
+                                        {GeneralSubCategories[classification.subCategory].name}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
 
                         {classification.severity && (
                             <View style={styles.infoRow}>

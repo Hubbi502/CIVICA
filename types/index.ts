@@ -144,10 +144,8 @@ export interface BusinessDetails {
     products?: string[];
 }
 
-export interface Promotion extends Post {
-    type: 'PROMOTION';
-    business: BusinessDetails;
-}
+// Note: Promotion is now a subCategory of GENERAL posts, not a separate type
+// Business details can be attached to any GENERAL post with subCategory: 'PROMOTION'
 
 export interface Comment {
     id: string;
