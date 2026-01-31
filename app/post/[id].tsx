@@ -1,27 +1,27 @@
 import {
-    Brand,
-    Colors,
-    FontSize,
-    FontWeight,
-    Radius,
-    SeverityColors,
-    Spacing,
+  Brand,
+  Colors,
+  FontSize,
+  FontWeight,
+  Radius,
+  SeverityColors,
+  Spacing,
 } from "@/constants/theme";
 import { db } from "@/FirebaseConfig";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-    addComment,
-    deleteComment,
-    getComments,
-    reportComment,
-    toggleCommentLike,
-    updateComment,
+  addComment,
+  deleteComment,
+  getComments,
+  reportComment,
+  toggleCommentLike,
+  updateComment,
 } from "@/services/comments";
 import {
-    deletePost,
-    toggleDownvote,
-    toggleUpvote,
-    toggleWatch,
+  deletePost,
+  toggleDownvote,
+  toggleUpvote,
+  toggleWatch,
 } from "@/services/posts";
 import { useAuthStore } from "@/stores/authStore";
 import { Comment, Post } from "@/types";
@@ -30,39 +30,39 @@ import { id } from "date-fns/locale";
 import { router, useLocalSearchParams } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import {
-    AlertTriangle,
-    ArrowDown,
-    ArrowLeft,
-    ArrowUp,
-    Bookmark,
-    CheckCircle,
-    Clock,
-    CornerDownLeft,
-    Edit2,
-    Eye,
-    Heart,
-    MapPin,
-    MessageCircle,
-    MoreVertical,
-    Send,
-    Share2,
-    Trash2,
-    X,
+  AlertTriangle,
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  Bookmark,
+  CheckCircle,
+  Clock,
+  CornerDownLeft,
+  Edit2,
+  Eye,
+  Heart,
+  MapPin,
+  MessageCircle,
+  MoreVertical,
+  Send,
+  Share2,
+  Trash2,
+  X,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -782,43 +782,40 @@ export default function PostDetailScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["top"]}
     >
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <ArrowLeft size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Detail Laporan
+        </Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setIsSaved(!isSaved)}>
+            <Bookmark
+              size={24}
+              color={isSaved ? Brand.primary : colors.icon}
+              fill={isSaved ? Brand.primary : "transparent"}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity>
+            <Share2 size={24} color={colors.icon} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.surface,
-              borderBottomColor: colors.border,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <ArrowLeft size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Detail Laporan
-          </Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={() => setIsSaved(!isSaved)}>
-              <Bookmark
-                size={24}
-                color={isSaved ? Brand.primary : colors.icon}
-                fill={isSaved ? Brand.primary : "transparent"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Share2 size={24} color={colors.icon} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <ScrollView
           ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
