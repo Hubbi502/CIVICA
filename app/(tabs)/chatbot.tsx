@@ -21,6 +21,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
@@ -210,12 +211,21 @@ export default function ChatbotScreen() {
                             resizeMode="cover"
                         />
                     )}
-                    <Text style={[
-                        styles.messageText,
-                        { color: isUser ? '#FFFFFF' : colors.text },
-                    ]}>
+                    <Markdown
+                        style={{
+                            body: {
+                                color: isUser ? '#FFFFFF' : colors.text,
+                                fontSize: FontSize.md,
+                                lineHeight: 22,
+                            },
+                            paragraph: {
+                                marginTop: 0,
+                                marginBottom: 0, // Tighten spacing for chat bubbles
+                            },
+                        }}
+                    >
                         {item.content}
-                    </Text>
+                    </Markdown>
                 </View>
             </View>
         );
