@@ -20,11 +20,9 @@ import {
     Clock,
     Edit2,
     Eye,
-    Heart,
     MapPin,
     MessageCircle,
     MoreVertical,
-    Send,
     Share2,
     Trash2,
     X
@@ -39,7 +37,6 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -567,27 +564,28 @@ export default function PostDetailScreen() {
                                 </View>
                             </View>
 
-                        {(post.updates || []).map((update) => (
-                            <View key={update.id} style={styles.timelineItem}>
-                                <View style={[styles.timelineDot, { backgroundColor: Brand.success }]} />
-                                <View style={[styles.updateCard, { backgroundColor: colors.surfaceSecondary }]}>
-                                    <Text style={[styles.updateAuthor, { color: colors.text }]}>
-                                        {update.authorName}
-                                    </Text>
-                                    <Text style={[styles.updateContent, { color: colors.textSecondary }]}>
-                                        {update.content}
-                                    </Text>
-                                    {update.media && (
-                                        <Image source={{ uri: update.media[0].url }} style={styles.updateImage} />
-                                    )}
-                                    <Text style={[styles.updateTime, { color: colors.textMuted }]}>
-                                        {formatDistanceToNow(update.createdAt, { addSuffix: true, locale: id })}
-                                    </Text>
+                            {(post.updates || []).map((update) => (
+                                <View key={update.id} style={styles.timelineItem}>
+                                    <View style={[styles.timelineDot, { backgroundColor: Brand.success }]} />
+                                    <View style={[styles.updateCard, { backgroundColor: colors.surfaceSecondary }]}>
+                                        <Text style={[styles.updateAuthor, { color: colors.text }]}>
+                                            {update.authorName}
+                                        </Text>
+                                        <Text style={[styles.updateContent, { color: colors.textSecondary }]}>
+                                            {update.content}
+                                        </Text>
+                                        {update.media && (
+                                            <Image source={{ uri: update.media[0].url }} style={styles.updateImage} />
+                                        )}
+                                        <Text style={[styles.updateTime, { color: colors.textMuted }]}>
+                                            {formatDistanceToNow(update.createdAt, { addSuffix: true, locale: id })}
+                                        </Text>
+                                    </View>
                                 </View>
-                            </View>
-                        ))}
+                            ))}
+                        </View>
                     </View>
-                </View>
+                )}
             </ScrollView>
 
             <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
