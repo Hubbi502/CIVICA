@@ -10,9 +10,9 @@ import {
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTranslation } from "@/hooks/useTranslation";
+import { getBadgeStatus, LEVEL_CONFIG } from "@/services/gamification"; // Updated import
 import { uploadAvatar } from "@/services/storage";
 import { useAuthStore } from "@/stores/authStore";
-import { LEVEL_CONFIG } from "@/services/gamification";
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from "expo-router";
 import {
@@ -46,24 +46,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const BADGES = [
-  { id: "1", name: "Pemula", Icon: Star, color: "#FBBF24", unlocked: true },
-  { id: "2", name: "Pelapor", Icon: PenLine, color: "#3B82F6", unlocked: true },
+  { id: "1", name: "Pemula", Icon: Star, color: "#FBBF24" },
+  { id: "2", name: "Pelapor", Icon: PenLine, color: "#3B82F6" },
   {
     id: "3",
     name: "Terverifikasi",
     Icon: ShieldCheck,
     color: "#10B981",
-    unlocked: true,
   },
   {
     id: "4",
     name: "Penolong",
     Icon: Handshake,
     color: "#8B5CF6",
-    unlocked: false,
   },
-  { id: "5", name: "Top 10", Icon: Trophy, color: "#F59E0B", unlocked: false },
-  { id: "6", name: "Streak 7", Icon: Flame, color: "#EF4444", unlocked: false },
+  { id: "5", name: "Top 10", Icon: Trophy, color: "#F59E0B" },
+  { id: "6", name: "Streak 7", Icon: Flame, color: "#EF4444" },
 ];
 
 
@@ -90,6 +88,7 @@ export default function ProfileScreen() {
 
   const levelInfo = LEVEL_CONFIG[stats.level];
   const progress = Math.min((stats.points / levelInfo.target) * 100, 100);
+  const badgeStatus = getBadgeStatus(stats); // Get dynamic badge status
 
   const handleSignOut = async () => {
     try {
@@ -301,39 +300,42 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
           <View style={styles.badgesGrid}>
-            {BADGES.map((badge) => (
-              <View
-                key={badge.id}
-                style={[
-                  styles.badgeItem,
-                  !badge.unlocked && styles.badgeLocked,
-                ]}
-              >
+            {BADGES.map((badge) => {
+              const isUnlocked = badgeStatus[badge.id as keyof typeof badgeStatus];
+              return (
                 <View
+                  key={badge.id}
                   style={[
-                    styles.badgeIconContainer,
-                    {
-                      backgroundColor: badge.unlocked
-                        ? badge.color + "20"
-                        : colors.border,
-                    },
+                    styles.badgeItem,
+                    !isUnlocked && styles.badgeLocked,
                   ]}
                 >
-                  <badge.Icon
-                    size={24}
-                    color={badge.unlocked ? badge.color : colors.textMuted}
-                  />
+                  <View
+                    style={[
+                      styles.badgeIconContainer,
+                      {
+                        backgroundColor: isUnlocked
+                          ? badge.color + "20"
+                          : colors.border,
+                      },
+                    ]}
+                  >
+                    <badge.Icon
+                      size={24}
+                      color={isUnlocked ? badge.color : colors.textMuted}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.badgeName,
+                      { color: isUnlocked ? colors.text : colors.textMuted },
+                    ]}
+                  >
+                    {badge.name}
+                  </Text>
                 </View>
-                <Text
-                  style={[
-                    styles.badgeName,
-                    { color: badge.unlocked ? colors.text : colors.textMuted },
-                  ]}
-                >
-                  {badge.name}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
