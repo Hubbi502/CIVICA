@@ -231,6 +231,9 @@ export const deletePost = async (postId: string): Promise<void> => {
     }
 };
 
+import { getUserProfile } from './auth';
+import { sendNotification } from './notifications';
+
 /**
  * Toggle upvote on a post (mutually exclusive with downvote)
  */
@@ -272,9 +275,22 @@ export const toggleUpvote = async (
             }
 
             await updateDoc(docRef, updates);
-            // Increase author points and upvote count
-            await updateUserPoints(post.authorId, POINTS_PER_UPVOTE);
-            await updateUserUpvoteCount(post.authorId, 1);
+
+            // Send notification
+            if (post.authorId && post.authorId !== userId) {
+                // Fetch liker profile to get name
+                getUserProfile(userId).then(profile => {
+                    const likerName = profile?.displayName || 'Seseorang';
+                    sendNotification(
+                        post.authorId,
+                        'upvote',
+                        'Postingan Disukai',
+                        `${likerName} menyukai postingan anda`,
+                        { postId, userId }
+                    ).catch(err => console.error('Error sending upvote notification:', err));
+                });
+            }
+
             return true;
         }
     } catch (error) {

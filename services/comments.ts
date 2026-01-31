@@ -41,6 +41,9 @@ export const getComments = async (postId: string): Promise<Comment[]> => {
     }
 };
 
+import { getDoc } from 'firebase/firestore';
+import { sendNotification } from './notifications';
+
 /**
  * Add a new comment to a post
  */
@@ -70,9 +73,28 @@ export const addComment = async (
 
         // Increment comment count on the post
         const postRef = doc(db, 'posts', postId);
-        await updateDoc(postRef, {
-            'engagement.comments': increment(1),
-        });
+
+        // Use Promise.all to update post and fetch it for notification in parallel
+        const [_, postSnap] = await Promise.all([
+            updateDoc(postRef, {
+                'engagement.comments': increment(1),
+            }),
+            getDoc(postRef)
+        ]);
+
+        // Send notification
+        if (postSnap.exists()) {
+            const post = postSnap.data();
+            if (post.authorId && post.authorId !== authorId) {
+                sendNotification(
+                    post.authorId,
+                    'comment',
+                    'Komentar Baru',
+                    `${authorName} mengomentari postingan anda: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
+                    { postId, commentId: docRef.id, userId: authorId }
+                ).catch(err => console.error('Error sending comment notification:', err));
+            }
+        }
 
         return docRef.id;
     } catch (error) {

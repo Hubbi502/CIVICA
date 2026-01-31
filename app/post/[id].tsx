@@ -374,8 +374,9 @@ export default function PostDetailScreen() {
 
     const handleCopyLink = async () => {
         if (!postId) return;
-        const deepLink = `civica://post/${postId}`;
-        const message = `Lihat postingan ini di CIVICA! ${deepLink}`;
+        const storageUrl = process.env.EXPO_PUBLIC_STORAGE_API_URL || 'https://storage.sangkaraprasetya.site';
+        const shareLink = `${storageUrl}/post/${postId}`;
+        const message = `Lihat postingan ini di CIVICA! ${shareLink}`;
 
         await Clipboard.setStringAsync(message);
         setShowShareModal(false);
@@ -389,8 +390,9 @@ export default function PostDetailScreen() {
 
     const handleNativeShare = async () => {
         try {
-            const deepLink = `civica://post/${postId}`;
-            const message = `Lihat postingan ini di CIVICA!\n\n${deepLink}`;
+            const storageUrl = process.env.EXPO_PUBLIC_STORAGE_API_URL || 'https://storage.sangkaraprasetya.site';
+            const shareLink = `${storageUrl}/post/${postId}`;
+            const message = `Lihat postingan ini di CIVICA!\n\n${shareLink}`;
             const imageUrl = post?.media && post.media.length > 0 ? post.media[0].url : undefined;
 
             const content: any = { message, title: 'Bagikan Postingan CIVICA' };
