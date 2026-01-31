@@ -131,11 +131,6 @@ export default function SettingsScreen() {
                         label={t('security')}
                         onPress={() => { }}
                     />
-                    <SettingsItem
-                        icon={Shield}
-                        label={t('privacy')}
-                        onPress={() => { }}
-                    />
                 </View>
 
                 <SectionHeader title={t('preferences')} />
@@ -171,11 +166,6 @@ export default function SettingsScreen() {
 
                 <SectionHeader title={t('support')} />
                 <View style={styles.settingsGroup}>
-                    <SettingsItem
-                        icon={HelpCircle}
-                        label={t('helpCenter')}
-                        onPress={() => { }}
-                    />
                     <SettingsItem
                         icon={Info}
                         label={t('aboutCivica')}

@@ -20,7 +20,7 @@ import {
     updateDoc,
     where,
 } from 'firebase/firestore';
-import { POINTS_PER_UPVOTE, updateUserPoints } from './gamification';
+import { POINTS_PER_UPVOTE, updateUserPoints, updateUserUpvoteCount } from './gamification';
 
 const POSTS_COLLECTION = 'posts';
 const POSTS_PER_PAGE = 20;
@@ -245,6 +245,7 @@ export const toggleUpvote = async (
         if (!docSnap.exists()) return false;
 
         const post = docSnap.data();
+        console.log('[toggleUpvote] Post authorId:', post.authorId, 'userId who upvoted:', userId);
         const hasUpvoted = post.upvotedBy?.includes(userId);
         const hasDownvoted = post.downvotedBy?.includes(userId);
 
@@ -254,8 +255,9 @@ export const toggleUpvote = async (
                 upvotedBy: arrayRemove(userId),
                 'engagement.upvotes': increment(-1),
             });
-            // Decrease author points
+            // Decrease author points and upvote count
             await updateUserPoints(post.authorId, -POINTS_PER_UPVOTE);
+            await updateUserUpvoteCount(post.authorId, -1);
             return false;
         } else {
             // Add upvote and remove downvote if exists
@@ -270,8 +272,9 @@ export const toggleUpvote = async (
             }
 
             await updateDoc(docRef, updates);
-            // Increase author points
+            // Increase author points and upvote count
             await updateUserPoints(post.authorId, POINTS_PER_UPVOTE);
+            await updateUserUpvoteCount(post.authorId, 1);
             return true;
         }
     } catch (error) {
@@ -318,9 +321,10 @@ export const toggleDownvote = async (
 
             await updateDoc(docRef, updates);
 
-            // If an upvote was removed, decrease author points
+            // If an upvote was removed, decrease author points and upvote count
             if (hasUpvoted) {
                 await updateUserPoints(post.authorId, -POINTS_PER_UPVOTE);
+                await updateUserUpvoteCount(post.authorId, -1);
             }
 
             return true;

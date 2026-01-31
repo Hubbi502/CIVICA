@@ -12,6 +12,7 @@ export const LEVEL_CONFIG = {
 export const POINTS_PER_UPVOTE = 0.4; // 5 upvotes = 2 points -> 1 upvote = 0.4 points
 
 export const updateUserPoints = async (userId: string, change: number) => {
+    console.log('[updateUserPoints] Called with userId:', userId, 'change:', change);
     try {
         const userRef = doc(db, 'users', userId);
 
@@ -51,10 +52,10 @@ export const updateUserPoints = async (userId: string, change: number) => {
             }
 
             // Update stats
+            console.log('[updateUserPoints] Updating user stats - newPoints:', newPoints, 'newLevel:', newLevel);
             transaction.update(userRef, {
                 'stats.points': newPoints,
                 'stats.level': newLevel,
-                'stats.totalUpvotes': (currentStats.totalUpvotes || 0) + (change > 0 ? 1 : -1), // Approximating total upvote count change
             });
         });
     } catch (error) {
@@ -71,4 +72,39 @@ export const getBadgeStatus = (stats: UserStats) => {
         "5": stats.points >= 1000,          // Top 10 (Placeholder)
         "6": false,                         // Streak 7 (Placeholder)
     };
+};
+
+/**
+ * Update user's total upvote count in their stats
+ */
+export const updateUserUpvoteCount = async (userId: string, change: number) => {
+    console.log('[updateUserUpvoteCount] Called with userId:', userId, 'change:', change);
+    try {
+        const userRef = doc(db, 'users', userId);
+
+        await runTransaction(db, async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) {
+                throw new Error('User does not exist');
+            }
+
+            const userData = userDoc.data();
+            const currentStats = userData.stats || {
+                totalReports: 0,
+                totalUpvotes: 0,
+                resolvedIssues: 0,
+                points: 0,
+                level: 'bronze',
+            };
+
+            let newTotalUpvotes = (currentStats.totalUpvotes || 0) + change;
+            if (newTotalUpvotes < 0) newTotalUpvotes = 0;
+
+            transaction.update(userRef, {
+                'stats.totalUpvotes': newTotalUpvotes,
+            });
+        });
+    } catch (error) {
+        console.error('Error updating user upvote count:', error);
+    }
 };
