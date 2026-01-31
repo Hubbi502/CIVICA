@@ -316,14 +316,14 @@ export default function ReportDetailScreen() {
                         color={isUpvoted ? Brand.primary : colors.text}
                         fill={isUpvoted ? Brand.primary : 'transparent'}
                     />
-                    <Text style={[styles.actionButtonText, isUpvoted && { color: Brand.primary }]}>
+                    <Text style={[styles.actionButtonText, { color: isUpvoted ? Brand.primary : colors.text }]}>
                         Upvote
                     </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.actionButton}>
                     <MessageCircle size={20} color={colors.text} />
-                    <Text style={styles.actionButtonText}>Komentar</Text>
+                    <Text style={[styles.actionButtonText, { color: colors.text }]}>Komentar</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -331,7 +331,7 @@ export default function ReportDetailScreen() {
                     onPress={() => setIsWatching(!isWatching)}
                 >
                     <Eye size={18} color={isWatching ? '#FFFFFF' : Brand.success} />
-                    <Text style={[styles.watchButtonText, isWatching && { color: '#FFFFFF' }]}>
+                    <Text style={[styles.watchButtonText, { color: isWatching ? '#FFFFFF' : Brand.success }]}>
                         {isWatching ? 'Mengikuti' : 'Ikuti'}
                     </Text>
                 </TouchableOpacity>
