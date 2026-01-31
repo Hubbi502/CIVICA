@@ -6,8 +6,9 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { Brand, Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/stores/authStore';
+import { useLanguageStore } from '@/stores/languageStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -65,17 +66,24 @@ function useProtectedRoute() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const { initialize, isInitialized } = useAuthStore();
+  const { effectiveColorScheme, initialize: initializeTheme, isInitialized: isThemeInitialized } = useThemeStore();
+  const colorScheme = effectiveColorScheme ?? 'light';
+  const { initialize: initializeAuth, isInitialized: isAuthInitialized } = useAuthStore();
+  const { initialize: initializeLanguage } = useLanguageStore();
 
   useEffect(() => {
-    const unsubscribe = initialize();
+    initializeTheme();
+    initializeLanguage();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = initializeAuth();
     return () => unsubscribe();
   }, []);
 
   useProtectedRoute();
 
-  if (!isInitialized) {
+  if (!isAuthInitialized || !isThemeInitialized) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: Colors[colorScheme].background }]}>
         <ActivityIndicator size="large" color={Brand.primary} />

@@ -1,8 +1,9 @@
 import { Brand, Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { FeedFilters } from '@/types';
 import { AlertTriangle, Filter, MapPin, Newspaper, ShoppingBag, TrendingUp } from 'lucide-react-native';
-import React from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -18,7 +19,7 @@ interface FilterBarProps {
 
 interface FilterOption {
     id: string;
-    label: string;
+    labelKey: string;
     icon: React.ComponentType<any>;
     value: Partial<FeedFilters>;
 }
@@ -26,76 +27,118 @@ interface FilterOption {
 const FILTER_OPTIONS: FilterOption[] = [
     {
         id: 'all',
-        label: 'Semua',
+        labelKey: 'all',
         icon: Filter,
         value: { type: 'all', sortBy: 'recent' },
     },
     {
         id: 'nearby',
-        label: 'Terdekat',
+        labelKey: 'nearby',
         icon: MapPin,
         value: { sortBy: 'nearby', radius: 5 },
     },
     {
         id: 'trending',
-        label: 'Trending',
+        labelKey: 'trending',
         icon: TrendingUp,
         value: { sortBy: 'trending' },
     },
     {
         id: 'reports',
-        label: 'Laporan',
+        labelKey: 'reports',
         icon: AlertTriangle,
         value: { type: 'REPORT' },
     },
     {
         id: 'news',
-        label: 'Berita',
+        labelKey: 'news',
         icon: Newspaper,
         value: { type: 'NEWS' },
     },
     {
         id: 'promotions',
-        label: 'Promo',
+        labelKey: 'promotions',
         icon: ShoppingBag,
         value: { type: 'PROMOTION' },
     },
 ];
 
-export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
+function FilterBar({ filters, onFilterChange }: FilterBarProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const { t } = useTranslation();
 
-    const isActive = (option: FilterOption) => {
+    // Use ref to store stable background color that only changes with colorScheme
+    const backgroundColorRef = useRef(colors.background);
+
+    // Only update background color when colorScheme actually changes
+    if (colorScheme === 'light' && backgroundColorRef.current !== Colors.light.background) {
+        backgroundColorRef.current = Colors.light.background;
+    } else if (colorScheme === 'dark' && backgroundColorRef.current !== Colors.dark.background) {
+        backgroundColorRef.current = Colors.dark.background;
+    }
+
+    const isActive = useCallback((option: FilterOption) => {
+        // "Semua" is only active when type is 'all' or undefined AND sortBy is 'recent' or undefined
         if (option.id === 'all') {
-            return !filters.type || filters.type === 'all';
+            const isDefaultType = !filters.type || filters.type === 'all';
+            const isDefaultSort = !filters.sortBy || filters.sortBy === 'recent';
+            return isDefaultType && isDefaultSort;
         }
+
+        // For type-based filters (reports, news, promotions), only active when this type is selected
         if (option.value.type) {
             return filters.type === option.value.type;
         }
-        if (option.value.sortBy) {
-            return filters.sortBy === option.value.sortBy;
-        }
-        return false;
-    };
 
-    const handlePress = (option: FilterOption) => {
-        onFilterChange({
-            ...filters,
-            ...option.value,
-        });
-    };
+        // For sortBy-based filters (nearby, trending), only active when this sortBy is selected
+        // AND no specific type filter is active
+        if (option.value.sortBy) {
+            const noTypeFilter = !filters.type || filters.type === 'all';
+            return filters.sortBy === option.value.sortBy && noTypeFilter;
+        }
+
+        return false;
+    }, [filters.type, filters.sortBy]);
+
+    const handlePress = useCallback((option: FilterOption) => {
+        // When selecting a type-based filter, reset sortBy to default
+        if (option.value.type) {
+            onFilterChange({
+                ...filters,
+                type: option.value.type,
+                sortBy: 'recent', // Reset sortBy when selecting a type filter
+            });
+        }
+        // When selecting a sortBy-based filter (including 'all'), reset type to default
+        else if (option.value.sortBy) {
+            onFilterChange({
+                ...filters,
+                ...option.value,
+                type: 'all', // Reset type when selecting a sortBy filter
+            });
+        }
+        else {
+            onFilterChange({
+                ...filters,
+                ...option.value,
+            });
+        }
+    }, [filters, onFilterChange]);
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.container, { backgroundColor: backgroundColorRef.current }]}>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
+                style={{ backgroundColor: backgroundColorRef.current }}
+                contentContainerStyle={[styles.scrollContent, { backgroundColor: backgroundColorRef.current }]}
+                removeClippedSubviews={false}
             >
-                {FILTER_OPTIONS.map((option) => {
+                {FILTER_OPTIONS.map((option, index) => {
                     const Icon = option.icon;
                     const active = isActive(option);
+                    const isLast = index === FILTER_OPTIONS.length - 1;
 
                     return (
                         <TouchableOpacity
@@ -105,9 +148,11 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
                                 {
                                     backgroundColor: active ? Brand.primary : colors.surface,
                                     borderColor: active ? Brand.primary : colors.border,
+                                    marginRight: isLast ? 0 : Spacing.sm,
                                 },
                             ]}
                             onPress={() => handlePress(option)}
+                            activeOpacity={0.7}
                         >
                             <Icon
                                 size={16}
@@ -119,7 +164,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
                                     { color: active ? '#FFFFFF' : colors.text },
                                 ]}
                             >
-                                {option.label}
+                                {t(option.labelKey)}
                             </Text>
                         </TouchableOpacity>
                     );
@@ -129,13 +174,16 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
     );
 }
 
+export default memo(FilterBar);
+
 const styles = StyleSheet.create({
     container: {
         paddingVertical: Spacing.sm,
     },
     scrollContent: {
+        flexDirection: 'row',
         paddingHorizontal: Spacing.md,
-        gap: Spacing.sm,
+        alignItems: 'center',
     },
     filterButton: {
         flexDirection: 'row',

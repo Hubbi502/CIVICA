@@ -1,5 +1,6 @@
 import { Brand, Colors, Shadows } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Tabs } from 'expo-router';
 import { Activity, FileText, Home, MessageCircle, User } from 'lucide-react-native';
 import React from 'react';
@@ -8,6 +9,7 @@ import { Platform, StyleSheet } from 'react-native';
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { t } = useTranslation();
 
   return (
     <Tabs
@@ -35,7 +37,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Beranda',
+          title: t('home'),
           tabBarIcon: ({ color, focused }) => (
             <Home
               size={22}
@@ -48,7 +50,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="pulse"
         options={{
-          title: 'Pulsa Kota',
+          title: t('pulse'),
           tabBarIcon: ({ color, focused }) => (
             <Activity
               size={22}
@@ -67,7 +69,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'Laporan',
+          title: t('reports'),
           tabBarIcon: ({ color, focused }) => (
             <FileText
               size={22}
@@ -80,7 +82,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chatbot"
         options={{
-          title: 'Asisten',
+          title: t('chat'),
           tabBarIcon: ({ color, focused }) => (
             <MessageCircle
               size={22}
@@ -93,7 +95,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profil',
+          title: t('profile'),
           tabBarIcon: ({ color, focused }) => (
             <User
               size={22}
@@ -108,4 +110,3 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({});
-

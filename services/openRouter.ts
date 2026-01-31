@@ -6,7 +6,7 @@ const openrouter = new OpenRouter({
     apiKey: process.env.EXPO_PUBLIC_OPENROUTER_API_KEY,
 });
 
-const MODEL = 'xiaomi/mimo-v2-flash:free';
+const MODEL = 'google/gemma-3-12b-it:free';
 
 const imageToBase64 = async (uri: string): Promise<string> => {
     const response = await fetch(uri);
@@ -56,20 +56,30 @@ Respond in valid JSON format only:
 }
 `;
 
-        const messages: { role: string; content: string }[] = [];
+        // Build multimodal content array
+        const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+            { type: 'text', text: prompt }
+        ];
 
+        // Add images if present
         if (images.length > 0) {
-            messages.push({
-                role: 'user',
-                content: prompt + '\n\n[User has attached ' + images.length + ' image(s)]'
-            });
-        } else {
-            messages.push({ role: 'user', content: prompt });
+            for (const imageUri of images) {
+                const base64Image = await imageToBase64(imageUri);
+                messageContent.push({
+                    type: 'image_url',
+                    image_url: { url: base64Image }
+                });
+            }
         }
 
         const response = await openrouter.chat.send({
             model: MODEL,
-            messages: messages as any,
+            messages: [
+                {
+                    role: 'user',
+                    content: messageContent
+                }
+            ] as any,
         });
 
         const content = response.choices?.[0]?.message?.content;
@@ -131,7 +141,16 @@ Respond in JSON:
             messages: [
                 {
                     role: 'user',
-                    content: prompt + '\n\n[Image analysis requested]',
+                    content: [
+                        {
+                            type: 'text',
+                            text: prompt
+                        },
+                        {
+                            type: 'image_url',
+                            image_url: { url: base64Image }
+                        }
+                    ]
                 },
             ] as any,
         });
@@ -207,7 +226,8 @@ export const getChatResponse = async (
         persona: PersonaType;
         location: { city: string; district: string };
         timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
-    }
+    },
+    imageUri?: string
 ): Promise<string> => {
     try {
         const personaInfo = Personas[context.persona];
@@ -226,6 +246,7 @@ Kemampuanmu:
 - Bantu buat laporan baru
 - Info bisnis lokal dan UMKM
 - Info kota dan event
+- Menganalisis gambar yang dikirim pengguna
 
 ATURAN PENTING:
 1. JANGAN gunakan format markdown apapun (seperti **, *, #, dll)
@@ -234,6 +255,7 @@ ATURAN PENTING:
 4. Jawab singkat dan to the point, tidak perlu terlalu formal
 5. Gunakan bahasa Indonesia sehari-hari yang ramah
 6. Jika merekomendasikan tempat, sebutkan perkiraan jarak dan harga dengan natural
+7. Jika pengguna mengirim gambar, analisis dengan detail dan jelaskan apa yang kamu lihat
 
 Contoh gaya bicara yang benar:
 "Hai! Ada beberapa kedai kopi enak di sekitar Dago nih. Kopi Tuku sekitar 500m dari kamu, harganya 15-25rb. Mau aku carikan yang lebih spesifik?"
@@ -243,13 +265,37 @@ Contoh yang SALAH (jangan seperti ini):
 1. **Kopi Tuku** - *500m*"
 `;
 
-        const conversationMessages = [
-            { role: 'system', content: systemPrompt },
-            ...messages.slice(-10).map((m) => ({
+        // Build conversation messages
+        const conversationMessages: Array<{ role: string; content: any }> = [
+            { role: 'user', content: `[INSTRUKSI SISTEM - Ikuti aturan ini untuk semua respons]\n${systemPrompt}` },
+            { role: 'assistant', content: 'Siap! Aku akan mengikuti semua aturan di atas. Ada yang bisa aku bantu? 😊' },
+        ];
+
+        // Add previous messages (except the last one if we have an image)
+        const messagesToProcess = imageUri ? messages.slice(-10, -1) : messages.slice(-10);
+        for (const m of messagesToProcess) {
+            conversationMessages.push({
                 role: m.role === 'user' ? 'user' : 'assistant',
                 content: m.content,
-            })),
-        ];
+            });
+        }
+
+        // Handle the last message with potential image
+        if (imageUri && messages.length > 0) {
+            const lastMessage = messages[messages.length - 1];
+            // If it's already a data URL (from web), use it directly, otherwise convert
+            const base64Image = imageUri.startsWith('data:')
+                ? imageUri
+                : await imageToBase64(imageUri);
+
+            conversationMessages.push({
+                role: 'user',
+                content: [
+                    { type: 'text', text: lastMessage.content || 'Apa yang ada di gambar ini?' },
+                    { type: 'image_url', imageUrl: { url: base64Image } }
+                ]
+            });
+        }
 
         const response = await openrouter.chat.send({
             model: MODEL,

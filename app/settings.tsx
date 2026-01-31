@@ -1,9 +1,12 @@
 import { Brand, Colors, FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Language, useLanguageStore } from '@/stores/languageStore';
+import { useThemeStore } from '@/stores/themeStore';
 import { router } from 'expo-router';
 import {
     ArrowLeft,
     Bell,
+    Check,
     ChevronRight,
     Globe,
     HelpCircle,
@@ -16,6 +19,7 @@ import {
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+    Modal,
     ScrollView,
     StyleSheet,
     Switch,
@@ -36,12 +40,29 @@ type SettingsItemProps = {
 };
 
 export default function SettingsScreen() {
-    const colorScheme = useColorScheme() ?? 'light';
+    const { effectiveColorScheme, toggleDarkMode } = useThemeStore();
+    const { language, setLanguage } = useLanguageStore();
+    const { t } = useTranslation();
+    const colorScheme = effectiveColorScheme ?? 'light';
     const colors = Colors[colorScheme];
 
     const [notifications, setNotifications] = useState(true);
-    const [darkMode, setDarkMode] = useState(colorScheme === 'dark');
+    const darkMode = colorScheme === 'dark';
     const [locationServices, setLocationServices] = useState(true);
+    const [languageModalVisible, setLanguageModalVisible] = useState(false);
+
+    const handleDarkModeToggle = async () => {
+        await toggleDarkMode();
+    };
+
+    const handleLanguageSelect = async (lang: Language) => {
+        await setLanguage(lang);
+        setLanguageModalVisible(false);
+    };
+
+    const getLanguageDisplayName = (lang: Language) => {
+        return lang === 'id' ? t('indonesian') : t('english');
+    };
 
     const SettingsItem = ({
         icon: Icon,
@@ -93,71 +114,71 @@ export default function SettingsScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <ArrowLeft size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: colors.text }]}>Pengaturan</Text>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>{t('settings')}</Text>
                 <View style={styles.placeholder} />
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-                <SectionHeader title="AKUN" />
+                <SectionHeader title={t('account')} />
                 <View style={styles.settingsGroup}>
                     <SettingsItem
                         icon={User}
-                        label="Edit Profil"
+                        label={t('editProfile')}
                         onPress={() => { }}
                     />
                     <SettingsItem
                         icon={Lock}
-                        label="Keamanan"
+                        label={t('security')}
                         onPress={() => { }}
                     />
                     <SettingsItem
                         icon={Shield}
-                        label="Privasi"
+                        label={t('privacy')}
                         onPress={() => { }}
                     />
                 </View>
 
-                <SectionHeader title="PREFERENSI" />
+                <SectionHeader title={t('preferences')} />
                 <View style={styles.settingsGroup}>
                     <SettingsItem
                         icon={Bell}
-                        label="Notifikasi"
+                        label={t('notifications')}
                         showToggle
                         toggleValue={notifications}
                         onToggle={setNotifications}
                     />
                     <SettingsItem
                         icon={Moon}
-                        label="Mode Gelap"
+                        label={t('darkMode')}
                         showToggle
                         toggleValue={darkMode}
-                        onToggle={setDarkMode}
+                        onToggle={handleDarkModeToggle}
                     />
                     <SettingsItem
                         icon={Globe}
-                        label="Bahasa"
-                        value="Indonesia"
-                        onPress={() => { }}
+                        label={t('language')}
+                        value={getLanguageDisplayName(language)}
+                        onPress={() => setLanguageModalVisible(true)}
                     />
                     <SettingsItem
                         icon={Smartphone}
-                        label="Layanan Lokasi"
+                        label={t('locationServices')}
                         showToggle
                         toggleValue={locationServices}
                         onToggle={setLocationServices}
                     />
                 </View>
 
-                <SectionHeader title="DUKUNGAN" />
+                <SectionHeader title={t('support')} />
                 <View style={styles.settingsGroup}>
                     <SettingsItem
                         icon={HelpCircle}
-                        label="Pusat Bantuan"
+                        label={t('helpCenter')}
                         onPress={() => { }}
                     />
                     <SettingsItem
                         icon={Info}
-                        label="Tentang CIVICA"
+                        label={t('aboutCivica')}
                         value="v1.0.0"
                         onPress={() => { }}
                     />
@@ -172,6 +193,55 @@ export default function SettingsScreen() {
                     </Text>
                 </View>
             </ScrollView>
+
+            {/* Language Selection Modal */}
+            <Modal
+                visible={languageModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setLanguageModalVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setLanguageModalVisible(false)}
+                >
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>
+                            {t('selectLanguage')}
+                        </Text>
+
+                        <TouchableOpacity
+                            style={[styles.languageOption, { borderColor: colors.border }]}
+                            onPress={() => handleLanguageSelect('id')}
+                        >
+                            <Text style={[styles.languageOptionText, { color: colors.text }]}>
+                                🇮🇩 Indonesia
+                            </Text>
+                            {language === 'id' && <Check size={20} color={Brand.primary} />}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.languageOption, { borderColor: colors.border }]}
+                            onPress={() => handleLanguageSelect('en')}
+                        >
+                            <Text style={[styles.languageOptionText, { color: colors.text }]}>
+                                🇺🇸 English
+                            </Text>
+                            {language === 'en' && <Check size={20} color={Brand.primary} />}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.cancelButton, { backgroundColor: colors.background }]}
+                            onPress={() => setLanguageModalVisible(false)}
+                        >
+                            <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
+                                {t('cancel')}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -249,5 +319,48 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: FontSize.xs,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.lg,
+    },
+    modalContent: {
+        width: '100%',
+        maxWidth: 340,
+        borderRadius: Radius.xl,
+        padding: Spacing.lg,
+        ...Shadows.lg,
+    },
+    modalTitle: {
+        fontSize: FontSize.lg,
+        fontWeight: FontWeight.semibold,
+        textAlign: 'center',
+        marginBottom: Spacing.lg,
+    },
+    languageOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: Spacing.md,
+        borderRadius: Radius.md,
+        borderWidth: 1,
+        marginBottom: Spacing.sm,
+    },
+    languageOptionText: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.medium,
+    },
+    cancelButton: {
+        padding: Spacing.md,
+        borderRadius: Radius.md,
+        alignItems: 'center',
+        marginTop: Spacing.sm,
+    },
+    cancelButtonText: {
+        fontSize: FontSize.md,
+        fontWeight: FontWeight.medium,
     },
 });

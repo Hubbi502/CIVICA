@@ -3,28 +3,29 @@ import PostCard from '@/components/feed/PostCard';
 import { Brand, Colors, FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
 import { db } from '@/FirebaseConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { toggleUpvote } from '@/services/posts';
 import { useAuthStore } from '@/stores/authStore';
 import { FeedFilters, Post } from '@/types';
 import { router } from 'expo-router';
 import {
-    collection,
-    limit,
-    onSnapshot,
-    orderBy,
-    query,
-    where,
+  collection,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
 } from 'firebase/firestore';
 import { Bell, MapPin, Plus, Search } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -32,6 +33,7 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const { user } = useAuthStore();
+  const { t } = useTranslation();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [filters, setFilters] = useState<FeedFilters>({ type: 'all', sortBy: 'recent' });
@@ -71,7 +73,10 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    setIsLoading(true);
+    // Only set loading if we don't have posts yet (initial load)
+    if (posts.length === 0) {
+      setIsLoading(true);
+    }
 
     const q = buildQuery();
     const unsubscribe = onSnapshot(
@@ -185,11 +190,11 @@ export default function HomeScreen() {
           <View style={styles.locationRow}>
             <MapPin size={16} color={Brand.primary} />
             <Text style={[styles.locationText, { color: colors.text }]}>
-              {user?.location?.district || 'Lokasi'}
+              {user?.location?.district || t('location')}
             </Text>
           </View>
           <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>
-            Halo, {user?.displayName?.split(' ')[0] || 'Civican'}! 👋
+            {t('hello')}, {user?.displayName?.split(' ')[0] || 'Civican'}! 👋
           </Text>
         </View>
 
@@ -211,10 +216,10 @@ export default function HomeScreen() {
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        Belum ada postingan
+        {t('noPosts')}
       </Text>
       <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-        Jadilah yang pertama berbagi informasi di area ini!
+        {t('beFirst')}
       </Text>
     </View>
   );
@@ -243,12 +248,13 @@ export default function HomeScreen() {
             tintColor={Brand.primary}
           />
         }
-        contentContainerStyle={styles.listContent}
+        style={{ backgroundColor: colors.background }}
+        contentContainerStyle={[styles.listContent, { backgroundColor: colors.background }]}
         showsVerticalScrollIndicator={false}
       />
 
       {isLoading && posts.length === 0 && (
-        <View style={styles.loadingOverlay}>
+        <View style={[styles.loadingOverlay, { backgroundColor: colors.background }]}>
           <ActivityIndicator size="large" color={Brand.primary} />
         </View>
       )}
@@ -331,13 +337,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSize.md,
     textAlign: 'center',
-  },
+    },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.8)',
-  },
+    backgroundColor: 'rgba(255,255,255, 0.8)',
+    },
   fab: {
     position: 'absolute',
     right: Spacing.lg,

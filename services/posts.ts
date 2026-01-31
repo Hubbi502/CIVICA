@@ -117,7 +117,7 @@ export const createPost = async (
         const post = {
             authorId: postData.authorId,
             authorName: postData.isAnonymous ? 'Anonymous' : postData.authorName,
-            authorAvatar: postData.isAnonymous ? null : postData.authorAvatar,
+            authorAvatar: postData.isAnonymous ? null : (postData.authorAvatar || null),
             isAnonymous: postData.isAnonymous,
             content: postData.content,
             media: postData.mediaUrls.map((url) => ({

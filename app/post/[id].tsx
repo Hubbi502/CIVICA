@@ -1,8 +1,11 @@
 import { Brand, Colors, FontSize, FontWeight, Radius, SeverityColors, Spacing, StatusColors } from '@/constants/theme';
+import { db } from '@/FirebaseConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { router, useLocalSearchParams } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
 import {
     AlertTriangle,
     ArrowLeft,
@@ -16,8 +19,9 @@ import {
     MessageCircle,
     Share2,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Image,
     ScrollView,
     StyleSheet,
@@ -27,58 +31,111 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const MOCK_POST = {
-    id: '1',
-    authorName: 'Ahmad Sudirman',
-    authorAvatar: null,
-    content: 'Ada lubang besar di Jl. Sudirman depan Gedung A. Sudah beberapa hari dan cukup berbahaya untuk pengendara motor. Mohon segera diperbaiki! 🚧\n\nLokasi tepat di depan halte bus, lubangnya cukup dalam dan lebar. Saat hujan tidak terlihat karena tergenang air.',
-    media: [
-        { url: 'https://picsum.photos/seed/detail1/600/400', type: 'image' },
-        { url: 'https://picsum.photos/seed/detail2/600/400', type: 'image' },
-    ],
-    location: {
-        district: 'Menteng',
-        city: 'Jakarta',
-        address: 'Jl. Sudirman No. 10, depan Gedung A',
-    },
-    type: 'REPORT' as const,
-    severity: 'high' as const,
-    status: 'verified' as const,
-    engagement: {
-        upvotes: 45,
-        comments: 12,
-        watchers: 28,
-        views: 230,
-    },
-    verifiedCount: 15,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    updates: [
-        {
-            id: '1',
-            authorName: 'Budi Santoso',
-            content: 'Tadi pagi lewat, lubangnya memang cukup besar. Berbahaya kalau malam.',
-            createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        },
-        {
-            id: '2',
-            authorName: 'Dewi Lestari',
-            content: 'Sudah dilaporkan ke RT setempat. Katanya minggu depan akan ditangani.',
-            media: [{ url: 'https://picsum.photos/seed/update1/300/200', type: 'image' }],
-            createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-        },
-    ],
-};
+interface PostDetail extends Post {
+    status?: 'active' | 'verified' | 'resolved' | 'closed';
+    severity?: 'low' | 'medium' | 'high' | 'critical';
+    updates?: {
+        id: string;
+        authorName: string;
+        content: string;
+        media?: { url: string; type: string }[];
+        createdAt: Date;
+    }[];
+    verifiedCount?: number;
+}
 
 export default function PostDetailScreen() {
     const { id: postId } = useLocalSearchParams<{ id: string }>();
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
 
+    const [post, setPost] = useState<PostDetail | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [isUpvoted, setIsUpvoted] = useState(false);
     const [isWatching, setIsWatching] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
 
-    const post = MOCK_POST;
+    useEffect(() => {
+        const fetchPost = async () => {
+            if (!postId) return;
+
+            try {
+                setIsLoading(true);
+                const postRef = doc(db, 'posts', postId);
+                const postSnap = await getDoc(postRef);
+
+                if (postSnap.exists()) {
+                    const data = postSnap.data();
+                    setPost({
+                        id: postSnap.id,
+                        authorId: data.authorId,
+                        authorName: data.authorName,
+                        authorAvatar: data.authorAvatar,
+                        isAnonymous: data.isAnonymous,
+                        content: data.content,
+                        media: data.media || [],
+                        location: data.location || { district: '', city: '', address: '' },
+                        type: data.type,
+                        classification: data.classification,
+                        engagement: data.engagement || { upvotes: 0, comments: 0, shares: 0, watchers: 0, views: 0 },
+                        upvotedBy: data.upvotedBy || [],
+                        watchedBy: data.watchedBy || [],
+                        createdAt: data.createdAt?.toDate() || new Date(),
+                        updatedAt: data.updatedAt?.toDate() || new Date(),
+                        status: data.status,
+                        severity: data.severity || data.classification?.severity,
+                        updates: (data.updates || []).map((u: any) => ({
+                            ...u,
+                            createdAt: u.createdAt?.toDate() || new Date(),
+                        })),
+                        verifiedCount: data.verifiedCount || 0,
+                    } as PostDetail);
+                }
+            } catch (error) {
+                console.error('Error fetching post:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchPost();
+    }, [postId]);
+
+    if (isLoading) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+                <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <ArrowLeft size={24} color={colors.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.headerTitle, { color: colors.text }]}>Detail Laporan</Text>
+                    <View style={styles.headerActions} />
+                </View>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Brand.primary} />
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (!post) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+                <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <ArrowLeft size={24} color={colors.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.headerTitle, { color: colors.text }]}>Detail Laporan</Text>
+                    <View style={styles.headerActions} />
+                </View>
+                <View style={styles.errorContainer}>
+                    <Text style={[styles.errorText, { color: colors.textSecondary }]}>
+                        Laporan tidak ditemukan
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -121,12 +178,16 @@ export default function PostDetailScreen() {
                             </View>
                         </View>
 
-                        <View style={[styles.statusBadge, { backgroundColor: StatusColors[post.status] + '15' }]}>
-                            <CheckCircle size={14} color={StatusColors[post.status]} />
-                            <Text style={[styles.statusText, { color: StatusColors[post.status] }]}>
-                                Terverifikasi
-                            </Text>
-                        </View>
+                        {post.status && (
+                            <View style={[styles.statusBadge, { backgroundColor: StatusColors[post.status!] + '15' }]}>
+                                <CheckCircle size={14} color={StatusColors[post.status!]} />
+                                <Text style={[styles.statusText, { color: StatusColors[post.status!] }]}>
+                                    {post.status === 'verified' ? 'Terverifikasi' :
+                                        post.status === 'resolved' ? 'Selesai' :
+                                            post.status === 'closed' ? 'Ditutup' : 'Aktif'}
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     <Text style={[styles.content, { color: colors.text }]}>
@@ -152,17 +213,21 @@ export default function PostDetailScreen() {
                         </Text>
                     </View>
 
-                    <View style={styles.severityRow}>
-                        <AlertTriangle size={16} color={SeverityColors[post.severity]} />
-                        <Text style={[styles.severityLabel, { color: colors.textSecondary }]}>
-                            Tingkat Keparahan:
-                        </Text>
-                        <View style={[styles.severityBadge, { backgroundColor: SeverityColors[post.severity] + '15' }]}>
-                            <Text style={[styles.severityText, { color: SeverityColors[post.severity] }]}>
-                                Tinggi
+                    {post.severity && (
+                        <View style={styles.severityRow}>
+                            <AlertTriangle size={16} color={SeverityColors[post.severity!]} />
+                            <Text style={[styles.severityLabel, { color: colors.textSecondary }]}>
+                                Tingkat Keparahan:
                             </Text>
+                            <View style={[styles.severityBadge, { backgroundColor: SeverityColors[post.severity!] + '15' }]}>
+                                <Text style={[styles.severityText, { color: SeverityColors[post.severity!] }]}>
+                                    {post.severity === 'low' ? 'Ringan' :
+                                        post.severity === 'medium' ? 'Sedang' :
+                                            post.severity === 'high' ? 'Tinggi' : 'Kritis'}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
+                    )}
                 </View>
 
                 <View style={[styles.statsRow, { backgroundColor: colors.surface }]}>
@@ -218,7 +283,7 @@ export default function PostDetailScreen() {
                             </View>
                         </View>
 
-                        {post.updates.map((update) => (
+                        {(post.updates || []).map((update) => (
                             <View key={update.id} style={styles.timelineItem}>
                                 <View style={[styles.timelineDot, { backgroundColor: Brand.success }]} />
                                 <View style={[styles.updateCard, { backgroundColor: colors.surfaceSecondary }]}>
@@ -509,5 +574,20 @@ const styles = StyleSheet.create({
         fontSize: FontSize.sm,
         fontWeight: FontWeight.semibold,
         color: Brand.success,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.lg,
+    },
+    errorText: {
+        fontSize: FontSize.md,
+        textAlign: 'center',
     },
 });

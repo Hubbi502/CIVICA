@@ -160,6 +160,7 @@ export interface ChatMessage {
     id: string;
     role: ChatRole;
     content: string;
+    imageUri?: string;
     timestamp: Date;
     metadata?: {
         type?: 'recommendation' | 'search' | 'info' | 'action';
